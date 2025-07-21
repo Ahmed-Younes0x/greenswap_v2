@@ -106,11 +106,24 @@ export const itemsAPI = {
   getStats: () => api.get("/items/stats/"),
 };
 
-// Orders API
 export const ordersAPI = {
-  getOrders: (params) => api.get("/orders/", { params }),
-  createOrder: (orderData) => api.post("/orders/", orderData),
-  updateOrder: (id, orderData) => api.patch(`/orders/${id}/`, orderData),
+  // Get all orders (grouped by received, sent, completed)
+  getOrders: () => api.get("/orders/"),
+  
+  // Get specific order details
+  getOrder: (orderId) => api.get(`/orders/${orderId}/`),
+  
+  // Create a new order
+  createOrder: (orderData) => api.post("/orders/create/", orderData),
+  
+  // Update order status (seller only)
+  updateOrderStatus: (orderId, status) => 
+    api.post(`/orders/${orderId}/status/`, { status }),
+  
+  // Cancel an order (buyer only)
+  cancelOrder: (orderId) => api.delete(`/orders/${orderId}/cancel/`),
+  
+  // Get current user's orders (grouped by received, sent, completed)
   getMyOrders: () => api.get("/orders/"),
 };
 
