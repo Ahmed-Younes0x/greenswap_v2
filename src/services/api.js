@@ -111,7 +111,7 @@ export const ordersAPI = {
   getOrders: (params) => api.get("/orders/", { params }),
   createOrder: (orderData) => api.post("/orders/", orderData),
   updateOrder: (id, orderData) => api.patch(`/orders/${id}/`, orderData),
-  getMyOrders: () => api.get("/orders/my-orders/"),
+  getMyOrders: () => api.get("/orders/"),
 };
 
 // Chat API

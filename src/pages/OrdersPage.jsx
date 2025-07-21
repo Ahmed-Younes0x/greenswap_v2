@@ -1,112 +1,96 @@
-"use client"
+"use client";
 
-import { useState, useEffect } from "react"
-import { Link } from "react-router-dom"
-import { useAuth } from "../context/AuthContext"
+import { useState, useEffect } from "react";
+import { Link } from "react-router-dom";
+import { useAuth } from "../context/AuthContext";
+import { ordersAPI } from "../services/api.js";
 
 const OrdersPage = () => {
-  const { currentUser } = useAuth()
-  const [activeTab, setActiveTab] = useState("received")
+  const { currentUser } = useAuth();
+  const [activeTab, setActiveTab] = useState("received");
   const [orders, setOrders] = useState({
     received: [],
     sent: [],
     completed: [],
-  })
-  const [loading, setLoading] = useState(true)
+  });
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   useEffect(() => {
-    // محاكاة تحميل الطلبات
-    const mockOrders = {
-      received: [
-        {
-          id: 1,
-          item: {
-            id: 1,
-            title: "أثاث مكتبي مستعمل",
-            image: "/placeholder.svg?height=100&width=100",
-            category: "أثاث",
-          },
-          buyer: {
-            id: 2,
-            name: "أحمد محمد",
-            avatar: "/placeholder.svg?height=50&width=50",
-            rating: 4.5,
-          },
-          message: "أريد شراء هذا الأثاث، هل يمكن التفاوض على السعر؟",
-          status: "pending",
-          createdAt: "2024-01-15T10:30:00",
-          price: "300",
-        },
-        {
-          id: 2,
-          item: {
-            id: 2,
-            title: "خردة معادن",
-            image: "/placeholder.svg?height=100&width=100",
-            category: "معادن",
-          },
-          buyer: {
-            id: 3,
-            name: "ورشة التدوير",
-            avatar: "/placeholder.svg?height=50&width=50",
-            rating: 4.8,
-          },
-          message: "نحن مهتمون بشراء هذه المعادن، ما هو السعر النهائي؟",
-          status: "accepted",
-          createdAt: "2024-01-14T15:45:00",
-          price: "500 جنيه",
-        },
-      ],
-      sent: [
-        {
-          id: 3,
-          item: {
-            id: 3,
-            title: "بلاستيك للتدوير",
-            image: "/placeholder.svg?height=100&width=100",
-            category: "بلاستيك",
-          },
-          seller: {
-            id: 4,
-            name: "مصنع البلاستيك",
-            avatar: "/placeholder.svg?height=50&width=50",
-            rating: 4.6,
-          },
-          message: "أريد شراء كمية كبيرة من البلاستيك",
-          status: "pending",
-          createdAt: "2024-01-13T09:20:00",
-          price: "200 جنيه",
-        },
-      ],
-      completed: [
-        {
-          id: 4,
-          item: {
-            id: 4,
-            title: "أجهزة إلكترونية قديمة",
-            image: "/placeholder.svg?height=100&width=100",
-            category: "إلكترونيات",
-          },
-          buyer: {
-            id: 5,
-            name: "محل الإلكترونيات",
-            avatar: "/placeholder.svg?height=50&width=50",
-            rating: 4.3,
-          },
-          message: "تم الاتفاق على الصفقة",
-          status: "completed",
-          createdAt: "2024-01-10T14:00:00",
-          completedAt: "2024-01-12T16:30:00",
-          price: "300 جنيه",
-        },
-      ],
-    }
+    const fetchOrders = async () => {
+      try {
+        setLoading(true);
+        const response = await ordersAPI.getMyOrders();
 
-    setTimeout(() => {
-      setOrders(mockOrders)
-      setLoading(false)
-    }, 1000)
-  }, [])
+        // Process the orders data from backend
+        const processedOrders = response.data;
+        setOrders(processedOrders);
+      } catch (err) {
+        console.error("Failed to fetch orders:", err);
+        setError("فشل تحميل الطلبات. يرجى المحاولة مرة أخرى.");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    if (currentUser) {
+      fetchOrders();
+    }
+  }, [currentUser]);
+
+  const processOrdersData = (ordersData) => {
+    // This function processes the raw data from backend into the format our component expects
+    const processed = {
+      received: [],
+      sent: [],
+      completed: [],
+    };
+
+    ordersData.forEach((order) => {
+      const formattedOrder = {
+        id: order.id,
+        item: {
+          id: order.item.id,
+          title: order.item.title,
+          image: order.item.images?.[0]?.image || "/placeholder.svg",
+          category: order.item.category?.name || "غير مصنف",
+        },
+        message: order.message || "لا توجد رسالة",
+        status: order.status,
+        createdAt: order.created_at,
+        completedAt: order.completed_at,
+        price: order.price ? `${order.price} جنيه` : "غير محدد",
+      };
+
+      // Determine if the current user is the buyer or seller
+      if (order.buyer.id === currentUser.id) {
+        // This is an order sent by the current user
+        formattedOrder.seller = {
+          id: order.seller.id,
+          name: order.seller.name || order.seller.username,
+          avatar: order.seller.avatar || "/placeholder.svg",
+          rating: order.seller.rating || 0,
+        };
+        processed.sent.push(formattedOrder);
+      } else {
+        // This is an order received by the current user
+        formattedOrder.buyer = {
+          id: order.buyer.id,
+          name: order.buyer.name || order.buyer.username,
+          avatar: order.buyer.avatar || "/placeholder.svg",
+          rating: order.buyer.rating || 0,
+        };
+        processed.received.push(formattedOrder);
+      }
+
+      // Add to completed if status is completed
+      if (order.status === "completed") {
+        processed.completed.push(formattedOrder);
+      }
+    });
+
+    return processed;
+  };
 
   const getStatusLabel = (status) => {
     const statuses = {
@@ -114,28 +98,50 @@ const OrdersPage = () => {
       accepted: { label: "مقبول", class: "success" },
       rejected: { label: "مرفوض", class: "danger" },
       completed: { label: "مكتمل", class: "info" },
+    };
+    return statuses[status] || { label: status, class: "secondary" };
+  };
+
+  const handleOrderAction = async (orderId, action) => {
+    try {
+      await ordersAPI.updateOrder(orderId, { status: action });
+
+      // Update local state to reflect the change
+      setOrders((prev) => ({
+        ...prev,
+        received: prev.received.map((order) =>
+          order.id === orderId ? { ...order, status: action } : order
+        ),
+      }));
+
+      alert(`تم ${action === "accepted" ? "قبول" : "رفض"} الطلب بنجاح`);
+    } catch (err) {
+      console.error("Failed to update order:", err);
+      alert("فشل تحديث حالة الطلب. يرجى المحاولة مرة أخرى.");
     }
-    return statuses[status] || { label: status, class: "secondary" }
-  }
-
-  const handleOrderAction = (orderId, action) => {
-    // محاكاة تحديث حالة الطلب
-    setOrders((prev) => ({
-      ...prev,
-      received: prev.received.map((order) => (order.id === orderId ? { ...order, status: action } : order)),
-    }))
-
-    alert(`تم ${action === "accepted" ? "قبول" : "رفض"} الطلب بنجاح`)
-  }
+  };
 
   const formatDate = (dateString) => {
-    return new Date(dateString).toLocaleDateString("ar-EG", {
+    if (!dateString) return "غير محدد";
+    const date = new Date(dateString);
+    return date.toLocaleDateString("ar-EG", {
       year: "numeric",
       month: "long",
       day: "numeric",
       hour: "2-digit",
       minute: "2-digit",
-    })
+    });
+  };
+
+  if (!currentUser) {
+    return (
+      <div className="container py-5 text-center">
+        <p>الرجاء تسجيل الدخول لعرض الطلبات</p>
+        <Link to="/login" className="btn btn-success">
+          تسجيل الدخول
+        </Link>
+      </div>
+    );
   }
 
   if (loading) {
@@ -145,9 +151,24 @@ const OrdersPage = () => {
           <div className="spinner-border text-success" role="status">
             <span className="visually-hidden">جاري التحميل...</span>
           </div>
+          <p className="mt-2">جاري تحميل الطلبات...</p>
         </div>
       </div>
-    )
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="container py-5 text-center text-danger">
+        <p>{error}</p>
+        <button
+          className="btn btn-success"
+          onClick={() => window.location.reload()}
+        >
+          إعادة المحاولة
+        </button>
+      </div>
+    );
   }
 
   return (
@@ -173,7 +194,9 @@ const OrdersPage = () => {
           <ul className="nav nav-pills nav-fill">
             <li className="nav-item">
               <button
-                className={`nav-link ${activeTab === "received" ? "active" : ""}`}
+                className={`nav-link ${
+                  activeTab === "received" ? "active" : ""
+                }`}
                 onClick={() => setActiveTab("received")}
               >
                 <i className="fas fa-inbox me-2"></i>
@@ -191,7 +214,9 @@ const OrdersPage = () => {
             </li>
             <li className="nav-item">
               <button
-                className={`nav-link ${activeTab === "completed" ? "active" : ""}`}
+                className={`nav-link ${
+                  activeTab === "completed" ? "active" : ""
+                }`}
                 onClick={() => setActiveTab("completed")}
               >
                 <i className="fas fa-check-circle me-2"></i>
@@ -212,7 +237,9 @@ const OrdersPage = () => {
                 <div className="text-center py-5">
                   <i className="fas fa-inbox fs-1 text-muted mb-3"></i>
                   <h4 className="text-muted">لا توجد طلبات مستلمة</h4>
-                  <p className="text-muted">عندما يرسل لك أحد طلباً، ستظهر هنا</p>
+                  <p className="text-muted">
+                    عندما يرسل لك أحد طلباً، ستظهر هنا
+                  </p>
                 </div>
               ) : (
                 <div className="row">
@@ -222,30 +249,48 @@ const OrdersPage = () => {
                         <div className="card-body">
                           <div className="d-flex align-items-start mb-3">
                             <img
-                              src={order.item.image || "/placeholder.svg"}
+                              src={order.item.image}
                               alt={order.item.title}
                               className="rounded me-3"
-                              style={{ width: "80px", height: "80px", objectFit: "cover" }}
+                              style={{
+                                width: "80px",
+                                height: "80px",
+                                objectFit: "cover",
+                              }}
                             />
                             <div className="flex-grow-1">
                               <h6 className="mb-1">{order.item.title}</h6>
-                              <span className="badge bg-secondary mb-2">{order.item.category}</span>
-                              <p className="text-success fw-bold mb-0">{order.price}</p>
+                              <span className="badge bg-secondary mb-2">
+                                {order.item.category}
+                              </span>
+                              <p className="text-success fw-bold mb-0">
+                                {order.price}
+                              </p>
                             </div>
-                            <span className={`badge bg-${getStatusLabel(order.status).class}`}>
+                            <span
+                              className={`badge bg-${
+                                getStatusLabel(order.status).class
+                              }`}
+                            >
                               {getStatusLabel(order.status).label}
                             </span>
                           </div>
 
                           <div className="d-flex align-items-center mb-3">
                             <img
-                              src={order.buyer.avatar || "/placeholder.svg"}
+                              src={order.buyer.avatar}
                               alt={order.buyer.name}
                               className="rounded-circle me-2"
-                              style={{ width: "30px", height: "30px", objectFit: "cover" }}
+                              style={{
+                                width: "30px",
+                                height: "30px",
+                                objectFit: "cover",
+                              }}
                             />
                             <div>
-                              <small className="fw-bold">{order.buyer.name}</small>
+                              <small className="fw-bold">
+                                {order.buyer.name}
+                              </small>
                               <div>
                                 <i className="fas fa-star text-warning me-1"></i>
                                 <small>{order.buyer.rating}</small>
@@ -254,7 +299,9 @@ const OrdersPage = () => {
                           </div>
 
                           <div className="mb-3">
-                            <p className="text-muted small mb-1">رسالة المشتري:</p>
+                            <p className="text-muted small mb-1">
+                              رسالة المشتري:
+                            </p>
                             <p className="mb-0">{order.message}</p>
                           </div>
 
@@ -269,19 +316,26 @@ const OrdersPage = () => {
                             <div className="d-flex gap-2">
                               <button
                                 className="btn btn-success btn-sm flex-grow-1"
-                                onClick={() => handleOrderAction(order.id, "accepted")}
+                                onClick={() =>
+                                  handleOrderAction(order.id, "accepted")
+                                }
                               >
                                 <i className="fas fa-check me-1"></i>
                                 قبول
                               </button>
                               <button
                                 className="btn btn-outline-danger btn-sm flex-grow-1"
-                                onClick={() => handleOrderAction(order.id, "rejected")}
+                                onClick={() =>
+                                  handleOrderAction(order.id, "rejected")
+                                }
                               >
                                 <i className="fas fa-times me-1"></i>
                                 رفض
                               </button>
-                              <Link to={`/chat?user=${order.buyer.id}`} className="btn btn-outline-primary btn-sm">
+                              <Link
+                                to={`/chat?user=${order.buyer.id}`}
+                                className="btn btn-outline-primary btn-sm"
+                              >
                                 <i className="fas fa-comments"></i>
                               </Link>
                             </div>
@@ -289,13 +343,18 @@ const OrdersPage = () => {
 
                           {order.status === "accepted" && (
                             <div className="d-flex gap-2">
-                              <Link to={`/chat?user=${order.buyer.id}`} className="btn btn-primary btn-sm flex-grow-1">
+                              <Link
+                                to={`/chat?user=${order.buyer.id}`}
+                                className="btn btn-primary btn-sm flex-grow-1"
+                              >
                                 <i className="fas fa-comments me-1"></i>
                                 تواصل مع المشتري
                               </Link>
                               <button
                                 className="btn btn-success btn-sm"
-                                onClick={() => handleOrderAction(order.id, "completed")}
+                                onClick={() =>
+                                  handleOrderAction(order.id, "completed")
+                                }
                               >
                                 <i className="fas fa-check-circle me-1"></i>
                                 إتمام الصفقة
@@ -331,30 +390,48 @@ const OrdersPage = () => {
                         <div className="card-body">
                           <div className="d-flex align-items-start mb-3">
                             <img
-                              src={order.item.image || "/placeholder.svg"}
+                              src={order.item.image}
                               alt={order.item.title}
                               className="rounded me-3"
-                              style={{ width: "80px", height: "80px", objectFit: "cover" }}
+                              style={{
+                                width: "80px",
+                                height: "80px",
+                                objectFit: "cover",
+                              }}
                             />
                             <div className="flex-grow-1">
                               <h6 className="mb-1">{order.item.title}</h6>
-                              <span className="badge bg-secondary mb-2">{order.item.category}</span>
-                              <p className="text-success fw-bold mb-0">{order.price}</p>
+                              <span className="badge bg-secondary mb-2">
+                                {order.item.category}
+                              </span>
+                              <p className="text-success fw-bold mb-0">
+                                {order.price}
+                              </p>
                             </div>
-                            <span className={`badge bg-${getStatusLabel(order.status).class}`}>
+                            <span
+                              className={`badge bg-${
+                                getStatusLabel(order.status).class
+                              }`}
+                            >
                               {getStatusLabel(order.status).label}
                             </span>
                           </div>
 
                           <div className="d-flex align-items-center mb-3">
                             <img
-                              src={order.seller.avatar || "/placeholder.svg"}
+                              src={order.seller.avatar}
                               alt={order.seller.name}
                               className="rounded-circle me-2"
-                              style={{ width: "30px", height: "30px", objectFit: "cover" }}
+                              style={{
+                                width: "30px",
+                                height: "30px",
+                                objectFit: "cover",
+                              }}
                             />
                             <div>
-                              <small className="fw-bold">{order.seller.name}</small>
+                              <small className="fw-bold">
+                                {order.seller.name}
+                              </small>
                               <div>
                                 <i className="fas fa-star text-warning me-1"></i>
                                 <small>{order.seller.rating}</small>
@@ -375,11 +452,17 @@ const OrdersPage = () => {
                           </div>
 
                           <div className="d-flex gap-2">
-                            <Link to={`/item/${order.item.id}`} className="btn btn-outline-success btn-sm flex-grow-1">
+                            <Link
+                              to={`/item/${order.item.id}`}
+                              className="btn btn-outline-success btn-sm flex-grow-1"
+                            >
                               <i className="fas fa-eye me-1"></i>
                               عرض المنتج
                             </Link>
-                            <Link to={`/chat?user=${order.seller.id}`} className="btn btn-primary btn-sm">
+                            <Link
+                              to={`/chat?user=${order.seller.id}`}
+                              className="btn btn-primary btn-sm"
+                            >
                               <i className="fas fa-comments"></i>
                             </Link>
                           </div>
@@ -409,15 +492,23 @@ const OrdersPage = () => {
                         <div className="card-body">
                           <div className="d-flex align-items-start mb-3">
                             <img
-                              src={order.item.image || "/placeholder.svg"}
+                              src={order.item.image}
                               alt={order.item.title}
                               className="rounded me-3"
-                              style={{ width: "80px", height: "80px", objectFit: "cover" }}
+                              style={{
+                                width: "80px",
+                                height: "80px",
+                                objectFit: "cover",
+                              }}
                             />
                             <div className="flex-grow-1">
                               <h6 className="mb-1">{order.item.title}</h6>
-                              <span className="badge bg-secondary mb-2">{order.item.category}</span>
-                              <p className="text-success fw-bold mb-0">{order.price}</p>
+                              <span className="badge bg-secondary mb-2">
+                                {order.item.category}
+                              </span>
+                              <p className="text-success fw-bold mb-0">
+                                {order.price}
+                              </p>
                             </div>
                             <span className="badge bg-success">
                               <i className="fas fa-check me-1"></i>
@@ -427,16 +518,26 @@ const OrdersPage = () => {
 
                           <div className="d-flex align-items-center mb-3">
                             <img
-                              src={order.buyer.avatar || "/placeholder.svg"}
-                              alt={order.buyer.name}
+                              src={order.buyer?.avatar || order.seller?.avatar}
+                              alt={order.buyer?.name || order.seller?.name}
                               className="rounded-circle me-2"
-                              style={{ width: "30px", height: "30px", objectFit: "cover" }}
+                              style={{
+                                width: "30px",
+                                height: "30px",
+                                objectFit: "cover",
+                              }}
                             />
                             <div>
-                              <small className="fw-bold">{order.buyer.name}</small>
+                              <small className="fw-bold">
+                                {order.buyer?.name || order.seller?.name}
+                              </small>
                               <div>
                                 <i className="fas fa-star text-warning me-1"></i>
-                                <small>{order.buyer.rating}</small>
+                                <small>
+                                  {order.buyer?.rating ||
+                                    order.seller?.rating ||
+                                    0}
+                                </small>
                               </div>
                             </div>
                           </div>
@@ -444,11 +545,15 @@ const OrdersPage = () => {
                           <div className="mb-3">
                             <div className="row">
                               <div className="col-6">
-                                <small className="text-muted d-block">تاريخ الطلب</small>
+                                <small className="text-muted d-block">
+                                  تاريخ الطلب
+                                </small>
                                 <small>{formatDate(order.createdAt)}</small>
                               </div>
                               <div className="col-6">
-                                <small className="text-muted d-block">تاريخ الإتمام</small>
+                                <small className="text-muted d-block">
+                                  تاريخ الإتمام
+                                </small>
                                 <small>{formatDate(order.completedAt)}</small>
                               </div>
                             </div>
@@ -475,7 +580,7 @@ const OrdersPage = () => {
         </div>
       </div>
     </div>
-  )
-}
+  );
+};
 
-export default OrdersPage
+export default OrdersPage;

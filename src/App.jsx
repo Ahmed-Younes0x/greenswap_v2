@@ -21,10 +21,16 @@ import AdminPanel from "./pages/AdminPanel"
 
 // Context
 import { AuthProvider } from "./context/AuthContext"
+import  { useEffect } from "react";
+
 
 import "./App.css"
 
 function App() {
+    useEffect(() => {
+    document.documentElement.setAttribute('dir', 'ltr');
+    document.documentElement.setAttribute('lang', 'ar');
+  }, []);
   return (
     <AuthProvider>
       <Router>

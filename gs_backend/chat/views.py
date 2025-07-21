@@ -27,10 +27,11 @@ class MessageListCreateView(APIView):
 
     def post(self, request, conversation_id):
         conversation = get_object_or_404(Conversation, id=conversation_id, participants=request.user)
+        print("Creating message in conversation:", request.data)
         message = Message.objects.create(
             conversation=conversation,
             sender=request.user,
-            content=request.data.get("content"),
+            content=request.data,
             type="text"
         )
         return Response(MessageSerializer(message).data)

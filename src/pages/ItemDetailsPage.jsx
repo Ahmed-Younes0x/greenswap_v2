@@ -1,66 +1,38 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { useParams, Link } from "react-router-dom"
-// import { useAuth } from "../context/AuthContext"
+import { useParams, Link, useNavigate } from "react-router-dom"
+import { useAuth } from "../context/AuthContext"
+import { itemsAPI, ordersAPI } from "../services/api.js";
 
 const ItemDetailsPage = () => {
   const { id } = useParams()
-  // const { currentUser } = useAuth()
-  const currentUser='hamada'
+  const { currentUser } = useAuth()
+  const navigate = useNavigate()
   const [item, setItem] = useState(null)
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(null)
   const [currentImageIndex, setCurrentImageIndex] = useState(0)
   const [showContactModal, setShowContactModal] = useState(false)
+  const [orderMessage, setOrderMessage] = useState("")
+  const [showOrderModal, setShowOrderModal] = useState(false)
+  const [isOrdering, setIsOrdering] = useState(false)
 
   useEffect(() => {
-    // محاكاة تحميل بيانات المنتج
-    const mockItem = {
-      id: Number.parseInt(id),
-      title: "أثاث مكتبي مستعمل",
-      description: `مجموعة من الأثاث المكتبي المستعمل في حالة جيدة جداً. تشمل:
-      - 5 مكاتب خشبية
-      - 8 كراسي مكتبية
-      - خزانة ملفات
-      - طاولة اجتماعات
-      
-      الأثاث نظيف ومناسب للاستخدام المباشر أو إعادة التدوير. متاح للاستلام من المكتب.`,
-      category: "furniture",
-      condition: "good",
-      location: "القاهرة - مدينة نصر",
-      price: "مجاني",
-      priceType: "free",
-      quantity: "1",
-      unit: "مجموعة",
-      contactMethod: "both",
-      images: [
-        "/placeholder.svg?height=400&width=600",
-        "/placeholder.svg?height=400&width=600",
-        "/placeholder.svg?height=400&width=600",
-      ],
-      user: {
-        id: 2,
-        name: "شركة التطوير العقاري",
-        type: "company",
-        rating: 4.8,
-        reviewsCount: 24,
-        avatar: "/placeholder.svg?height=100&width=100",
-        phone: "01234567890",
-        joinDate: "2023-05-15",
-        totalItems: 12,
-        completedDeals: 8,
-      },
-      createdAt: "2024-01-15",
-      updatedAt: "2024-01-15",
-      views: 45,
-      interested: 12,
-      status: "available",
+    const fetchItem = async () => {
+      try {
+        setLoading(true)
+        const response = await itemsAPI.getItem(id)
+        setItem(response.data)
+      } catch (err) {
+        console.error("Failed to fetch item:", err)
+        setError("فشل تحميل بيانات المنتج. يرجى المحاولة مرة أخرى.")
+      } finally {
+        setLoading(false)
+      }
     }
 
-    setTimeout(() => {
-      setItem(mockItem)
-      setLoading(false)
-    }, 1000)
+    fetchItem()
   }, [id])
 
   const getCategoryLabel = (category) => {
@@ -100,20 +72,64 @@ const ItemDetailsPage = () => {
     return types[type] || type
   }
 
-  const handleInterest = () => {
+  const handleInterest = async () => {
     if (!currentUser) {
       alert("يجب تسجيل الدخول أولاً")
+      navigate("/login")
       return
     }
-    alert("تم إرسال إشعار الاهتمام بنجاح!")
+
+    try {
+      await itemsAPI.markInterested(item.id)
+      alert("تم إرسال إشعار الاهتمام بنجاح!")
+    } catch (err) {
+      console.error("Failed to mark interest:", err)
+      alert("فشل إرسال إشعار الاهتمام. يرجى المحاولة مرة أخرى.")
+    }
   }
 
   const handleContact = () => {
     if (!currentUser) {
       alert("يجب تسجيل الدخول أولاً")
+      navigate("/login")
       return
     }
     setShowContactModal(true)
+  }
+
+  const handleOrderClick = () => {
+    if (!currentUser) {
+      alert("يجب تسجيل الدخول أولاً")
+      navigate("/login")
+      return
+    }
+    setShowOrderModal(true)
+  }
+
+  const handleOrderSubmit = async () => {
+    if (!orderMessage.trim()) {
+      alert("الرجاء إدخال رسالة للطلب")
+      return
+    }
+
+    try {
+      setIsOrdering(true)
+      const orderData = {
+        item: item.id,
+        message: orderMessage,
+        price: item.price || 0,
+      }
+
+      await ordersAPI.createOrder(orderData)
+      alert("تم إرسال الطلب بنجاح!")
+      setShowOrderModal(false)
+      setOrderMessage("")
+    } catch (err) {
+      console.error("Failed to create order:", err)
+      alert("فشل إرسال الطلب. يرجى المحاولة مرة أخرى.")
+    } finally {
+      setIsOrdering(false)
+    }
   }
 
   if (loading) {
@@ -123,7 +139,22 @@ const ItemDetailsPage = () => {
           <div className="spinner-border text-success" role="status">
             <span className="visually-hidden">جاري التحميل...</span>
           </div>
+          <p className="mt-2">جاري تحميل بيانات المنتج...</p>
         </div>
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div className="container py-5 text-center text-danger">
+        <p>{error}</p>
+        <button 
+          className="btn btn-success"
+          onClick={() => window.location.reload()}
+        >
+          إعادة المحاولة
+        </button>
       </div>
     )
   }
@@ -168,13 +199,13 @@ const ItemDetailsPage = () => {
               {/* Main Image */}
               <div className="position-relative">
                 <img
-                  src={item.images[currentImageIndex] || "/placeholder.svg"}
+                  src={item.images?.[0]?.image || "/placeholder.svg"}
                   alt={item.title}
                   className="w-100"
                   style={{ height: "400px", objectFit: "cover" }}
                 />
                 <span className="badge bg-success position-absolute top-0 start-0 m-3">
-                  {getCategoryLabel(item.category)}
+                  {getCategoryLabel(item.category?.name)}
                 </span>
                 <span className="badge bg-secondary position-absolute top-0 end-0 m-3">
                   {getConditionLabel(item.condition)}
@@ -182,13 +213,13 @@ const ItemDetailsPage = () => {
               </div>
 
               {/* Image Thumbnails */}
-              {item.images.length > 1 && (
+              {item.images?.length > 1 && (
                 <div className="p-3">
                   <div className="row g-2">
                     {item.images.map((image, index) => (
                       <div key={index} className="col-3">
                         <img
-                          src={image || "/placeholder.svg"}
+                          src={image.image || "/placeholder.svg"}
                           alt={`صورة ${index + 1}`}
                           className={`w-100 rounded cursor-pointer ${
                             index === currentImageIndex ? "border border-success border-3" : ""
@@ -220,7 +251,7 @@ const ItemDetailsPage = () => {
                 <div className="col-md-6">
                   <ul className="list-unstyled">
                     <li className="mb-2">
-                      <strong>الفئة:</strong> {getCategoryLabel(item.category)}
+                      <strong>الفئة:</strong> {getCategoryLabel(item.category?.name)}
                     </li>
                     <li className="mb-2">
                       <strong>الحالة:</strong> {getConditionLabel(item.condition)}
@@ -236,7 +267,7 @@ const ItemDetailsPage = () => {
                       <strong>الموقع:</strong> {item.location}
                     </li>
                     <li className="mb-2">
-                      <strong>تاريخ النشر:</strong> {new Date(item.createdAt).toLocaleDateString("ar-EG")}
+                      <strong>تاريخ النشر:</strong> {new Date(item.created_at).toLocaleDateString("ar-EG")}
                     </li>
                     <li className="mb-2">
                       <strong>المشاهدات:</strong> {item.views}
@@ -254,20 +285,24 @@ const ItemDetailsPage = () => {
           <div className="card border-0 shadow-sm mb-4">
             <div className="card-body">
               <div className="text-center mb-4">
-                <h3 className="text-success mb-0">{item.price}</h3>
-                <small className="text-muted">{item.priceType === "negotiable" && "قابل للتفاوض"}</small>
+                <h3 className="text-success mb-0">{item.price || "مجاني"}</h3>
+                <small className="text-muted">{item.price_type === "negotiable" && "قابل للتفاوض"}</small>
               </div>
 
               <div className="d-grid gap-2">
-                <button className="btn btn-success btn-lg" onClick={handleContact}>
+                <button className="btn btn-success btn-lg" onClick={handleOrderClick}>
+                  <i className="fas fa-shopping-cart me-2"></i>
+                  تقديم طلب شراء
+                </button>
+                <button className="btn btn-outline-success" onClick={handleContact}>
                   <i className="fas fa-phone me-2"></i>
                   تواصل مع البائع
                 </button>
-                <button className="btn btn-outline-success" onClick={handleInterest}>
+                <button className="btn btn-outline-primary" onClick={handleInterest}>
                   <i className="fas fa-heart me-2"></i>
-                  أبدي اهتماماً ({item.interested})
+                  أبدي اهتماماً ({item.interested_count || 0})
                 </button>
-                <Link to={`/chat?user=${item.user.id}`} className="btn btn-outline-primary">
+                <Link to={`/chat?user=${item.user.id}`} className="btn btn-outline-info">
                   <i className="fas fa-comments me-2"></i>
                   إرسال رسالة
                 </Link>
@@ -292,14 +327,14 @@ const ItemDetailsPage = () => {
             <div className="card-body">
               <div className="d-flex align-items-center mb-3">
                 <img
-                  src={item.user.avatar || "/placeholder.svg"}
-                  alt={item.user.name}
+                  src={item.user?.avatar || "/placeholder.svg"}
+                  alt={item.user?.name}
                   className="rounded-circle me-3"
                   style={{ width: "50px", height: "50px", objectFit: "cover" }}
                 />
                 <div>
-                  <h6 className="mb-0">{item.user.name}</h6>
-                  <small className="text-muted">{getUserTypeLabel(item.user.type)}</small>
+                  <h6 className="mb-0">{item.user?.name || "غير معروف"}</h6>
+                  <small className="text-muted">{getUserTypeLabel(item.user?.user_type)}</small>
                 </div>
               </div>
 
@@ -308,23 +343,26 @@ const ItemDetailsPage = () => {
                   <span>التقييم</span>
                   <span>
                     <i className="fas fa-star text-warning me-1"></i>
-                    {item.user.rating} ({item.user.reviewsCount} تقييم)
+                    {item.user?.rating || 0} ({item.user?.reviews_count || 0} تقييم)
                   </span>
                 </div>
                 <div className="progress" style={{ height: "5px" }}>
-                  <div className="progress-bar bg-warning" style={{ width: `${(item.user.rating / 5) * 100}%` }}></div>
+                  <div 
+                    className="progress-bar bg-warning" 
+                    style={{ width: `${((item.user?.rating || 0) / 5) * 100}%` }}
+                  ></div>
                 </div>
               </div>
 
               <div className="row text-center">
                 <div className="col-6">
                   <div className="border-end">
-                    <h6 className="text-success mb-0">{item.user.totalItems}</h6>
+                    <h6 className="text-success mb-0">{item.user?.items_count || 0}</h6>
                     <small className="text-muted">إعلان</small>
                   </div>
                 </div>
                 <div className="col-6">
-                  <h6 className="text-success mb-0">{item.user.completedDeals}</h6>
+                  <h6 className="text-success mb-0">{item.user?.completed_orders || 0}</h6>
                   <small className="text-muted">صفقة مكتملة</small>
                 </div>
               </div>
@@ -332,7 +370,9 @@ const ItemDetailsPage = () => {
               <hr />
 
               <div className="text-center">
-                <small className="text-muted">عضو منذ {new Date(item.user.joinDate).toLocaleDateString("ar-EG")}</small>
+                <small className="text-muted">
+                  عضو منذ {item.user?.date_joined ? new Date(item.user.date_joined).toLocaleDateString("ar-EG") : "غير معروف"}
+                </small>
               </div>
             </div>
           </div>
@@ -381,33 +421,106 @@ const ItemDetailsPage = () => {
               <div className="modal-body">
                 <div className="text-center mb-3">
                   <img
-                    src={item.user.avatar || "/placeholder.svg"}
-                    alt={item.user.name}
+                    src={item.user?.avatar || "/placeholder.svg"}
+                    alt={item.user?.name}
                     className="rounded-circle mb-2"
                     style={{ width: "80px", height: "80px", objectFit: "cover" }}
                   />
-                  <h5>{item.user.name}</h5>
+                  <h5>{item.user?.name || "غير معروف"}</h5>
                 </div>
 
                 <div className="d-grid gap-2">
-                  <a href={`tel:${item.user.phone}`} className="btn btn-success">
-                    <i className="fas fa-phone me-2"></i>
-                    اتصال: {item.user.phone}
-                  </a>
-                  <a
-                    href={`https://wa.me/2${item.user.phone.substring(1)}`}
-                    className="btn btn-outline-success"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                  >
-                    <i className="fab fa-whatsapp me-2"></i>
-                    واتساب
-                  </a>
+                  {item.user?.phone && (
+                    <>
+                      <a href={`tel:${item.user.phone}`} className="btn btn-success">
+                        <i className="fas fa-phone me-2"></i>
+                        اتصال: {item.user.phone}
+                      </a>
+                      <a
+                        href={`https://wa.me/2${item.user.phone.substring(1)}`}
+                        className="btn btn-outline-success"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                      >
+                        <i className="fab fa-whatsapp me-2"></i>
+                        واتساب
+                      </a>
+                    </>
+                  )}
                   <Link to={`/chat?user=${item.user.id}`} className="btn btn-outline-primary">
                     <i className="fas fa-comments me-2"></i>
                     محادثة عبر المنصة
                   </Link>
                 </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Order Modal */}
+      {showOrderModal && (
+        <div className="modal show d-block" tabIndex="-1" style={{ backgroundColor: "rgba(0,0,0,0.5)" }}>
+          <div className="modal-dialog">
+            <div className="modal-content">
+              <div className="modal-header">
+                <h5 className="modal-title">تقديم طلب شراء</h5>
+                <button 
+                  type="button" 
+                  className="btn-close" 
+                  onClick={() => {
+                    setShowOrderModal(false)
+                    setOrderMessage("")
+                  }}
+                  disabled={isOrdering}
+                ></button>
+              </div>
+              <div className="modal-body">
+                <div className="mb-3">
+                  <label htmlFor="orderMessage" className="form-label">
+                    رسالة الطلب (اختياري)
+                  </label>
+                  <textarea
+                    id="orderMessage"
+                    className="form-control"
+                    rows="3"
+                    value={orderMessage}
+                    onChange={(e) => setOrderMessage(e.target.value)}
+                    disabled={isOrdering}
+                  ></textarea>
+                </div>
+                <div className="alert alert-info">
+                  <i className="fas fa-info-circle me-2"></i>
+                  سيتم إرسال طلبك إلى البائع للموافقة عليه
+                </div>
+              </div>
+              <div className="modal-footer">
+                <button
+                  type="button"
+                  className="btn btn-secondary"
+                  onClick={() => {
+                    setShowOrderModal(false)
+                    setOrderMessage("")
+                  }}
+                  disabled={isOrdering}
+                >
+                  إلغاء
+                </button>
+                <button
+                  type="button"
+                  className="btn btn-success"
+                  onClick={handleOrderSubmit}
+                  disabled={isOrdering}
+                >
+                  {isOrdering ? (
+                    <>
+                      <span className="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>
+                      جاري الإرسال...
+                    </>
+                  ) : (
+                    "إرسال الطلب"
+                  )}
+                </button>
               </div>
             </div>
           </div>

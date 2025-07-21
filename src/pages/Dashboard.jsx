@@ -3,62 +3,97 @@
 import { useState, useEffect } from "react"
 import { Link } from "react-router-dom"
 import { useAuth } from "../context/AuthContext"
+import { itemsAPI, ordersAPI, chatAPI, notificationsAPI } from "../services/api.js"
 
 const Dashboard = () => {
-  console.log("Dashboard rendering")
-const auth = useAuth()
-  let currentUser = auth.currentUser
-  console.log("Current user:", currentUser.username)
-  if (!currentUser) {
-    console.log("Current user not found, setting to default");
-    
-    currentUser= 'NotUser'
-  }
+  const auth = useAuth()
+  const currentUser = auth.currentUser
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(null)
   const [stats, setStats] = useState({
-    myItems: 12,
-    activeOrders: 5,
-    completedDeals: 8,
-    messages: 3,
+    myItems: 0,
+    activeOrders: 0,
+    completedDeals: 0,
+    messages: 0,
   })
   const [recentActivity, setRecentActivity] = useState([])
 
   useEffect(() => {
-    // محاكاة تحميل النشاط الأخير
-    setRecentActivity([
-      {
-        id: 1,
-        type: "new_order",
-        message: "طلب جديد على أثاث المكتب",
-        time: "منذ ساعتين",
-        icon: "fas fa-shopping-cart",
-        color: "success",
-      },
-      {
-        id: 2,
-        type: "message",
-        message: "رسالة جديدة من أحمد محمد",
-        time: "منذ 4 ساعات",
-        icon: "fas fa-envelope",
-        color: "primary",
-      },
-      {
-        id: 3,
-        type: "item_viewed",
-        message: "تم عرض إعلانك 15 مرة اليوم",
-        time: "منذ 6 ساعات",
-        icon: "fas fa-eye",
-        color: "info",
-      },
-      {
-        id: 4,
-        type: "deal_completed",
-        message: "تم إتمام صفقة بنجاح",
-        time: "أمس",
-        icon: "fas fa-check-circle",
-        color: "success",
-      },
-    ])
-  }, [])
+    const fetchDashboardData = async () => {
+      try {
+        setLoading(true)
+        
+        // Fetch stats and recent activity in parallel
+        const [itemsRes, ordersRes,notificationsRes] = await Promise.all([
+          itemsAPI.getMyItems(),
+          ordersAPI.getMyOrders(),
+          // notificationsAPI.getNotifications(),
+        ])
+        console.log(ordersRes.data);
+        
+
+        // Calculate stats
+        const myItems = itemsRes.data.length
+        const activeOrders = ordersRes.data.received.length + ordersRes.data.sent.length
+        const completedDeals = ordersRes.data.completed.length
+        
+        // Get recent notifications as activity
+        // const recentNotifications = notificationsRes.data
+        //   .slice(0, 4)
+        //   .map(notification => ({
+        //     id: notification.id,
+        //     type: notification.type,
+        //     message: notification.message,
+        //     time: formatTime(notification.created_at),
+        //     icon: getNotificationIcon(notification.type),
+        //     color: getNotificationColor(notification.type),
+        //   }))
+
+        setStats({
+          myItems,
+          activeOrders,
+          completedDeals,
+          messages: 0, // Will need to implement chat message count
+        })
+
+        // setRecentActivity(recentNotifications)
+      } catch (err) {
+        console.error("Failed to fetch dashboard data:", err)
+        setError("Failed to load dashboard data. Please try again later.")
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    if (currentUser) {
+      fetchDashboardData()
+    }
+  }, [currentUser])
+
+  const formatTime = (timestamp) => {
+    // Implement your time formatting logic here
+    return "منذ ساعتين" // Placeholder - replace with actual time formatting
+  }
+
+  const getNotificationIcon = (type) => {
+    const icons = {
+      new_order: "fas fa-shopping-cart",
+      message: "fas fa-envelope",
+      item_viewed: "fas fa-eye",
+      deal_completed: "fas fa-check-circle",
+    }
+    return icons[type] || "fas fa-bell"
+  }
+
+  const getNotificationColor = (type) => {
+    const colors = {
+      new_order: "success",
+      message: "primary",
+      item_viewed: "info",
+      deal_completed: "success",
+    }
+    return colors[type] || "secondary"
+  }
 
   const getUserTypeLabel = (type) => {
     const types = {
@@ -69,6 +104,42 @@ const auth = useAuth()
       company: "شركة",
     }
     return types[type] || "غير محدد"
+  }
+
+  if (!currentUser) {
+    return (
+      <div className="container py-4 text-center">
+        <p>الرجاء تسجيل الدخول لعرض لوحة التحكم</p>
+        <Link to="/login" className="btn btn-success">
+          تسجيل الدخول
+        </Link>
+      </div>
+    )
+  }
+
+  if (loading) {
+    return (
+      <div className="container py-4 text-center">
+        <div className="spinner-border text-success" role="status">
+          <span className="visually-hidden">جاري التحميل...</span>
+        </div>
+        <p>جاري تحميل بيانات لوحة التحكم...</p>
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div className="container py-4 text-center text-danger">
+        <p>{error}</p>
+        <button 
+          className="btn btn-success"
+          onClick={() => window.location.reload()}
+        >
+          إعادة المحاولة
+        </button>
+      </div>
+    )
   }
 
   return (
@@ -184,7 +255,7 @@ const auth = useAuth()
               </Link>
             </div>
             <div className="card-body">
-              {recentActivity.length > 0 ? (
+              {/* {recentActivity.length > 0 ? (
                 <div className="list-group list-group-flush">
                   {recentActivity.map((activity) => (
                     <div key={activity.id} className="list-group-item border-0 px-0">
@@ -205,7 +276,7 @@ const auth = useAuth()
                   <i className="fas fa-inbox fs-1 mb-3"></i>
                   <p>لا يوجد نشاط حديث</p>
                 </div>
-              )}
+              )} */}
             </div>
           </div>
         </div>

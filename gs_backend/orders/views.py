@@ -10,11 +10,10 @@ from django.utils.timezone import now
 @permission_classes([IsAuthenticated])
 def list_orders(request):
     user = request.user
-
+    print(f"User: {user.username} - Listing orders")
     received = Order.objects.filter(seller=user).order_by('-created_at')
     sent = Order.objects.filter(buyer=user).order_by('-created_at')
     completed = Order.objects.filter(status='completed', buyer=user) | Order.objects.filter(status='completed', seller=user)
-
     data = {
         'received': OrderSerializer(received, many=True).data,
         'sent': OrderSerializer(sent, many=True).data,
@@ -22,6 +21,7 @@ def list_orders(request):
     }
 
     return Response(data)
+
 
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
