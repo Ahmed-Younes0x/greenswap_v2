@@ -302,7 +302,7 @@ const ItemDetailsPage = () => {
                   <i className="fas fa-heart me-2"></i>
                   أبدي اهتماماً ({item.interested_count || 0})
                 </button>
-                <Link to={`/chat?user=${item.user.id}`} className="btn btn-outline-info">
+                <Link to={`/chat/${item.user.id}/item/${item.id}`} className="btn btn-outline-info">
                   <i className="fas fa-comments me-2"></i>
                   إرسال رسالة
                 </Link>
@@ -447,7 +447,7 @@ const ItemDetailsPage = () => {
                       </a>
                     </>
                   )}
-                  <Link to={`/chat?user=${item.user.id}`} className="btn btn-outline-primary">
+                  <Link to={`/chat/${item.user.id}/item/${item.id}`} className="btn btn-outline-primary">
                     <i className="fas fa-comments me-2"></i>
                     محادثة عبر المنصة
                   </Link>

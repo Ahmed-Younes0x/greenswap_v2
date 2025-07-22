@@ -21,16 +21,16 @@ import AdminPanel from "./pages/AdminPanel"
 
 // Context
 import { AuthProvider } from "./context/AuthContext"
-import  { useEffect } from "react";
-
+import { useEffect } from "react";
 
 import "./App.css"
 
 function App() {
-    useEffect(() => {
+  useEffect(() => {
     document.documentElement.setAttribute('dir', 'ltr');
     document.documentElement.setAttribute('lang', 'ar');
   }, []);
+
   return (
     <AuthProvider>
       <Router>
@@ -45,7 +45,15 @@ function App() {
               <Route path="/add-item" element={<AddItemPage />} />
               <Route path="/search" element={<SearchPage />} />
               <Route path="/item/:id" element={<ItemDetailsPage />} />
-              <Route path="/chat" element={<ChatPage />} />
+              {/* Updated Chat Route */}
+              <Route 
+                path="/chat" 
+                element={<ChatPage />} 
+              />
+              <Route 
+                path="/chat/:sellerId/item/:itemId" 
+                element={<ChatPage />} 
+              />
               <Route path="/orders" element={<OrdersPage />} />
               <Route path="/profile" element={<ProfilePage />} />
               <Route path="/admin" element={<AdminPanel />} />

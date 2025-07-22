@@ -47,12 +47,14 @@ const OrdersPage = () => {
     };
 
     ordersData.forEach((order) => {
+      console.log(order.item.id,'entereds');
+      
       const formattedOrder = {
         id: order.id,
         item: {
           id: order.item.id,
           title: order.item.title,
-          image: order.item.images?.[0]?.image || "/placeholder.svg",
+          image: `http://localhost:8000/api/images/item/${order.item.id}/` || "/placeholder.svg",
           category: order.item.category?.name || "غير مصنف",
         },
         message: order.message || "لا توجد رسالة",
@@ -249,7 +251,7 @@ const OrdersPage = () => {
                         <div className="card-body">
                           <div className="d-flex align-items-start mb-3">
                             <img
-                              src={order.item.image}
+                              src={`http://localhost:8000/api/images/item/${order.item.id}/`}
                               alt={order.item.title}
                               className="rounded me-3"
                               style={{
@@ -390,7 +392,7 @@ const OrdersPage = () => {
                         <div className="card-body">
                           <div className="d-flex align-items-start mb-3">
                             <img
-                              src={order.item.image}
+                              src={`http://localhost:8000/api/images/item/${order.item.id}/`}
                               alt={order.item.title}
                               className="rounded me-3"
                               style={{
@@ -492,7 +494,7 @@ const OrdersPage = () => {
                         <div className="card-body">
                           <div className="d-flex align-items-start mb-3">
                             <img
-                              src={order.item.image}
+                              src={`http://localhost:8000/api/images/item/${order.item.id}/`}
                               alt={order.item.title}
                               className="rounded me-3"
                               style={{
