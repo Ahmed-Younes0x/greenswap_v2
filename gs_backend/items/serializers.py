@@ -24,12 +24,6 @@ class ItemListSerializer(serializers.ModelSerializer):
             'price', 'price_type', 'location', 'status', 'views',
             'interested_count', 'primary_image', 'created_at'
         ]
-
-    # def get_primary_image(self, obj):
-    #     primary_image = obj.images.filter(is_primary=True).first()
-    #     if primary_image:
-    #         return self.context['request'].build_absolute_uri(primary_image.image.url)
-    #     return None
     
     def get_primary_image(self, obj):
         primary_image = obj.images.filter(is_primary=True).first()
@@ -55,6 +49,7 @@ class ItemDetailSerializer(serializers.ModelSerializer):
             'contact_method', 'status', 'views', 'interested_count',
             'is_featured', 'images', 'created_at', 'updated_at'
         ]
+    
 
 class ItemCreateSerializer(serializers.ModelSerializer):
     images = serializers.ListField(
@@ -66,7 +61,7 @@ class ItemCreateSerializer(serializers.ModelSerializer):
     class Meta:
         model = Item
         fields = [
-            'title', 'description', 'category', 'condition', 'quantity',
+            'id','title', 'description', 'category', 'condition', 'quantity',
             'unit', 'price', 'price_type', 'location', 'contact_method',
             'images'
         ]

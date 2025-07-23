@@ -1,34 +1,35 @@
-import { BrowserRouter as Router, Routes, Route } from "react-router-dom"
-import "bootstrap/dist/css/bootstrap.min.css"
-import "bootstrap/dist/js/bootstrap.bundle.min.js"
+import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
+import "bootstrap/dist/css/bootstrap.min.css";
+import "bootstrap/dist/js/bootstrap.bundle.min.js";
 
 // Components
-import Navbar from "./components/Navbar"
-import Footer from "./components/Footer"
+import Navbar from "./components/Navbar";
+import Footer from "./components/Footer";
 
 // Pages
-import HomePage from "./pages/HomePage"
-import LoginPage from "./pages/LoginPage"
-import RegisterPage from "./pages/RegisterPage"
-import Dashboard from "./pages/Dashboard"
-import AddItemPage from "./pages/AddItemPage"
-import SearchPage from "./pages/SearchPage"
-import ItemDetailsPage from "./pages/ItemDetailsPage"
-import ChatPage from "./pages/ChatPage"
-import OrdersPage from "./pages/OrdersPage"
-import ProfilePage from "./pages/ProfilePage"
-import AdminPanel from "./pages/AdminPanel"
+import HomePage from "./pages/HomePage";
+import LoginPage from "./pages/LoginPage";
+import RegisterPage from "./pages/RegisterPage";
+import Dashboard from "./pages/Dashboard";
+import AddItemPage from "./pages/AddItemPage";
+import SearchPage from "./pages/SearchPage";
+import ItemDetailsPage from "./pages/ItemDetailsPage";
+import ChatPage from "./pages/ChatPage";
+import OrdersPage from "./pages/OrdersPage";
+import ProfilePage from "./pages/ProfilePage";
+import AdminPanel from "./pages/AdminPanel";
 
 // Context
-import { AuthProvider } from "./context/AuthContext"
+import { AuthProvider } from "./context/AuthContext";
 import { useEffect } from "react";
 
-import "./App.css"
+import "./App.css";
+import UpdateItemPage from "./pages/UpdateItemPage";
 
 function App() {
   useEffect(() => {
-    document.documentElement.setAttribute('dir', 'ltr');
-    document.documentElement.setAttribute('lang', 'ar');
+    document.documentElement.setAttribute("dir", "ltr");
+    document.documentElement.setAttribute("lang", "ar");
   }, []);
 
   return (
@@ -45,15 +46,14 @@ function App() {
               <Route path="/add-item" element={<AddItemPage />} />
               <Route path="/search" element={<SearchPage />} />
               <Route path="/item/:id" element={<ItemDetailsPage />} />
+              <Route path="/item/:id/update" element={<UpdateItemPage />} />
               {/* Updated Chat Route */}
-              <Route 
-                path="/chat" 
-                element={<ChatPage />} 
+              <Route path="/chat" element={<ChatPage />} />
+              <Route
+                path="/chat/:sellerId/item/:itemId"
+                element={<ChatPage />}
               />
-              <Route 
-                path="/chat/:sellerId/item/:itemId" 
-                element={<ChatPage />} 
-              />
+              <Route path="/chat/:sellerId" element={<ChatPage />} />
               <Route path="/orders" element={<OrdersPage />} />
               <Route path="/profile" element={<ProfilePage />} />
               <Route path="/admin" element={<AdminPanel />} />
@@ -65,7 +65,7 @@ function App() {
         </div>
       </Router>
     </AuthProvider>
-  )
+  );
 }
 
-export default App
+export default App;

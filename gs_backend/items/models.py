@@ -55,7 +55,7 @@ class Item(models.Model):
     price_type = models.CharField(max_length=20, choices=PRICE_TYPE_CHOICES, default='free')
     location = models.CharField(max_length=200)
     contact_method = models.CharField(max_length=20, choices=CONTACT_METHOD_CHOICES, default='both')
-    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='active')
     views = models.PositiveIntegerField(default=0)
     interested_count = models.PositiveIntegerField(default=0)
     is_featured = models.BooleanField(default=False)

@@ -64,6 +64,7 @@ class ProfileView(generics.RetrieveUpdateAPIView):
 
     def get_object(self):
         return self.request.user
+    
 
 @api_view(['GET'])
 def current_user(request):

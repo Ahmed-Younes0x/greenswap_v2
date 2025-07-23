@@ -335,7 +335,7 @@ const OrdersPage = () => {
                                 رفض
                               </button>
                               <Link
-                                to={`/chat?user=${order.buyer.id}`}
+                                to={`/chat/${order.buyer.id}`}
                                 className="btn btn-outline-primary btn-sm"
                               >
                                 <i className="fas fa-comments"></i>
@@ -346,7 +346,7 @@ const OrdersPage = () => {
                           {order.status === "accepted" && (
                             <div className="d-flex gap-2">
                               <Link
-                                to={`/chat?user=${order.buyer.id}`}
+                                to={`/chat/${order.buyer.id}`}
                                 className="btn btn-primary btn-sm flex-grow-1"
                               >
                                 <i className="fas fa-comments me-1"></i>
@@ -462,7 +462,7 @@ const OrdersPage = () => {
                               عرض المنتج
                             </Link>
                             <Link
-                              to={`/chat?user=${order.seller.id}`}
+                              to={`/chat/${order.seller.id}`}
                               className="btn btn-primary btn-sm"
                             >
                               <i className="fas fa-comments"></i>

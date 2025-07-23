@@ -68,26 +68,31 @@ const AddItemPage = () => {
     }))
   }
 
-    const handleChange = (e) => {
-    const { name, value, type, checked, files } = e.target
-    
-    if (type === "file") {
-      setFormData(prev => ({
-        ...prev,
-        images: Array.from(files)
-      }))
-    } else if (type === "checkbox") {
-      setFormData(prev => ({
-        ...prev,
-        [name]: checked
-      }))
-    } else {
-      setFormData(prev => ({
-        ...prev,
-        [name]: value
-      }))
-    }
+const handleChange = (e) => {
+  const { name, value, type, checked, files } = e.target
+  
+  if (type === "file") {
+    setFormData(prev => ({
+      ...prev,
+      images: Array.from(files)
+    }))
+  } else if (type === "checkbox") {
+    setFormData(prev => ({
+      ...prev,
+      [name]: checked
+    }))
+  } else if (type === "radio") {
+    setFormData(prev => ({
+      ...prev,
+      [name]: value  // Use the value of the radio button
+    }))
+  } else {
+    setFormData(prev => ({
+      ...prev,
+      [name]: value
+    }))
   }
+}
 
   const handleSubmit = async (e) => {
     e.preventDefault()
@@ -112,6 +117,8 @@ const AddItemPage = () => {
       const response = await itemsAPI.createItem(formData)
       
       // Success - redirect to item page or dashboard
+      console.log(response.data, "Item created successfully");
+      
       navigate(`/item/${response.data.id}`)
       
     } catch (err) {

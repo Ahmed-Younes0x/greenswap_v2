@@ -1,12 +1,6 @@
 from django.db import models
 from django.conf import settings
-
-class Item(models.Model):
-    title = models.CharField(max_length=255)
-    image = models.ImageField(upload_to="items/")
-
-    def __str__(self):
-        return self.title
+from items.models import Item
 
 class Conversation(models.Model):
     participants = models.ManyToManyField(settings.AUTH_USER_MODEL, related_name="conversations")
@@ -22,6 +16,7 @@ class Message(models.Model):
     content = models.TextField()
     timestamp = models.DateTimeField(auto_now_add=True)
     type = models.CharField(max_length=20, default="text")  # For future extensibility
+    read = models.BooleanField(default=False)
 
     def __str__(self):
         return f"Message from {self.sender.username} at {self.timestamp}"

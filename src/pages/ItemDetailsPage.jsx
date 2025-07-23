@@ -17,6 +17,7 @@ const ItemDetailsPage = () => {
   const [orderMessage, setOrderMessage] = useState("")
   const [showOrderModal, setShowOrderModal] = useState(false)
   const [isOrdering, setIsOrdering] = useState(false)
+  const [isDeleting, setIsDeleting] = useState(false)
 
   useEffect(() => {
     const fetchItem = async () => {
@@ -24,6 +25,8 @@ const ItemDetailsPage = () => {
         setLoading(true)
         const response = await itemsAPI.getItem(id)
         setItem(response.data)
+        console.log(response.data.user);
+        
       } catch (err) {
         console.error("Failed to fetch item:", err)
         setError("فشل تحميل بيانات المنتج. يرجى المحاولة مرة أخرى.")
@@ -132,6 +135,24 @@ const ItemDetailsPage = () => {
     }
   }
 
+  const handleDeleteItem = async () => {
+    if (!window.confirm("هل أنت متأكد أنك تريد حذف هذا الإعلان؟")) {
+      return
+    }
+
+    try {
+      setIsDeleting(true)
+      await itemsAPI.deleteItem(item.id)
+      alert("تم حذف الإعلان بنجاح")
+      navigate("/my-items")
+    } catch (err) {
+      console.error("Failed to delete item:", err)
+      alert("فشل حذف الإعلان. يرجى المحاولة مرة أخرى.")
+    } finally {
+      setIsDeleting(false)
+    }
+  }
+
   if (loading) {
     return (
       <div className="container py-5">
@@ -172,6 +193,8 @@ const ItemDetailsPage = () => {
     )
   }
 
+  const isOwner = currentUser && currentUser.id === item.user.id
+
   return (
     <div className="container py-4">
       {/* Breadcrumb */}
@@ -199,7 +222,7 @@ const ItemDetailsPage = () => {
               {/* Main Image */}
               <div className="position-relative">
                 <img
-                  src={item.images?.[0]?.image || "/placeholder.svg"}
+                  src={`http://localhost:8000/api/images/item/${item.id}/` || "/placeholder.svg"}
                   alt={item.title}
                   className="w-100"
                   style={{ height: "400px", objectFit: "cover" }}
@@ -289,24 +312,57 @@ const ItemDetailsPage = () => {
                 <small className="text-muted">{item.price_type === "negotiable" && "قابل للتفاوض"}</small>
               </div>
 
-              <div className="d-grid gap-2">
-                <button className="btn btn-success btn-lg" onClick={handleOrderClick}>
-                  <i className="fas fa-shopping-cart me-2"></i>
-                  تقديم طلب شراء
-                </button>
-                <button className="btn btn-outline-success" onClick={handleContact}>
-                  <i className="fas fa-phone me-2"></i>
-                  تواصل مع البائع
-                </button>
-                <button className="btn btn-outline-primary" onClick={handleInterest}>
-                  <i className="fas fa-heart me-2"></i>
-                  أبدي اهتماماً ({item.interested_count || 0})
-                </button>
-                <Link to={`/chat/${item.user.id}/item/${item.id}`} className="btn btn-outline-info">
-                  <i className="fas fa-comments me-2"></i>
-                  إرسال رسالة
-                </Link>
-              </div>
+              {isOwner ? (
+                <div className="d-grid gap-2">
+                  <Link 
+                    to={`/item/${item.id}/update`} 
+                    className="btn btn-success btn-lg"
+                  >
+                    <i className="fas fa-edit me-2"></i>
+                    تعديل الإعلان
+                  </Link>
+                  <button 
+                    className="btn btn-danger"
+                    onClick={handleDeleteItem}
+                    disabled={isDeleting}
+                  >
+                    {isDeleting ? (
+                      <>
+                        <span className="spinner-border spinner-border-sm me-2" role="status"></span>
+                        جاري الحذف...
+                      </>
+                    ) : (
+                      <>
+                        <i className="fas fa-trash me-2"></i>
+                        حذف الإعلان
+                      </>
+                    )}
+                  </button>
+                  <button className="btn btn-outline-primary" onClick={handleInterest}>
+                    <i className="fas fa-heart me-2"></i>
+                    عدد المهتمين ({item.interested_count || 0})
+                  </button>
+                </div>
+              ) : (
+                <div className="d-grid gap-2">
+                  <button className="btn btn-success btn-lg" onClick={handleOrderClick}>
+                    <i className="fas fa-shopping-cart me-2"></i>
+                    تقديم طلب شراء
+                  </button>
+                  <button className="btn btn-outline-success" onClick={handleContact}>
+                    <i className="fas fa-phone me-2"></i>
+                    تواصل مع البائع
+                  </button>
+                  <button className="btn btn-outline-primary" onClick={handleInterest}>
+                    <i className="fas fa-heart me-2"></i>
+                    أبدي اهتماماً ({item.interested_count || 0})
+                  </button>
+                  <Link to={`/chat/${item.user.id}/item/${item.id}`} className="btn btn-outline-info">
+                    <i className="fas fa-comments me-2"></i>
+                    إرسال رسالة
+                  </Link>
+                </div>
+              )}
 
               <hr />
 
@@ -322,7 +378,7 @@ const ItemDetailsPage = () => {
           {/* Seller Info */}
           <div className="card border-0 shadow-sm mb-4">
             <div className="card-header">
-              <h6 className="mb-0">معلومات البائع</h6>
+              <h6 className="mb-0">معلومات {isOwner ? "الحساب" : "البائع"}</h6>
             </div>
             <div className="card-body">
               <div className="d-flex align-items-center mb-3">
@@ -333,7 +389,7 @@ const ItemDetailsPage = () => {
                   style={{ width: "50px", height: "50px", objectFit: "cover" }}
                 />
                 <div>
-                  <h6 className="mb-0">{item.user?.name || "غير معروف"}</h6>
+                  <h6 className="mb-0">{item.user?.username || "غير معروف"}</h6>
                   <small className="text-muted">{getUserTypeLabel(item.user?.user_type)}</small>
                 </div>
               </div>
@@ -371,7 +427,7 @@ const ItemDetailsPage = () => {
 
               <div className="text-center">
                 <small className="text-muted">
-                  عضو منذ {item.user?.date_joined ? new Date(item.user.date_joined).toLocaleDateString("ar-EG") : "غير معروف"}
+                  عضو منذ {item.user?.created_at ? new Date(item.user.created_at).toLocaleDateString("ar-EG") : "غير معروف"}
                 </small>
               </div>
             </div>

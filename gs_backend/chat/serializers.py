@@ -1,5 +1,6 @@
 from rest_framework import serializers
-from .models import Conversation, Message, Item
+from items.models import Item  # Import your Item model
+from .models import Conversation, Message
 from accounts.models import User
 
 class UserSerializer(serializers.ModelSerializer):
@@ -10,7 +11,7 @@ class UserSerializer(serializers.ModelSerializer):
 class ItemSerializer(serializers.ModelSerializer):
     class Meta:
         model = Item
-        fields = ["id", "title", "image"]
+        fields = ["id", "title" , "user"]
 
 class MessageSerializer(serializers.ModelSerializer):
     sender = UserSerializer(read_only=True)

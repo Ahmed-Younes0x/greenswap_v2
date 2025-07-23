@@ -1,5 +1,6 @@
 from django.http import FileResponse, Http404
 from django.conf import settings
+from accounts.models import User
 from items.models import Item, ItemImage
 import os
 
@@ -34,3 +35,21 @@ def serve_image_itemid(request, itemid):
         
     except Exception as e:
         raise Http404(f"Error retrieving image: {str(e)}")
+    
+# def serve_image_avatar(request, itemid):
+    # try:
+    #     user = User.objects.filter(id=itemid).first()
+    #     if not user:
+    #         raise Http404("Item not found")
+    # # Use os.path.join for cross-platform compatibility
+    # image_path = os.path.join(settings.MEDIA_ROOT, 'avatar', User.avatar.toString())
+    # default_path = os.path.join(settings.MEDIA_ROOT, 'avatar', 'default.jpg')
+
+    # try:
+    #     if os.path.exists(image_path):
+    #         return FileResponse(open(image_path, 'rb'), content_type='image/jpeg')
+    #     elif os.path.exists(default_path):
+    #         return FileResponse(open(default_path, 'rb'), content_type='image/jpeg')
+    #     raise Http404("Image not found")
+    # except Exception as e:
+    #     raise Http404(f"Error accessing image: {str(e)}")

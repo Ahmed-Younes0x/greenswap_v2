@@ -1,88 +1,147 @@
-"use client"
+"use client";
 
-import { useState } from "react"
-import { useAuth } from "../context/AuthContext"
+import { useState, useEffect } from "react";
+import { useAuth } from "../context/AuthContext";
+import { authAPI, itemsAPI, ordersAPI } from "../services/api";
 
 const ProfilePage = () => {
-  // const { currentUser, login } = useAuth()
-  const currentUser='hamada'
-  const [activeTab, setActiveTab] = useState("profile")
-  const [loading, setLoading] = useState(false)
+  const { currentUser } = useAuth();
+  const [activeTab, setActiveTab] = useState("profile");
+  const [loading, setLoading] = useState(false);
+  const [stats, setStats] = useState({
+    myItems: 0,
+    activeOrders: 0,
+    completedDeals: 0,
+    messages: 0,
+  });
   const [profileData, setProfileData] = useState({
-    name: currentUser?.name || "",
-    email: currentUser?.email || "",
-    phone: currentUser?.phone || "",
-    location: currentUser?.location || "",
-    organization: currentUser?.organization || "",
-    bio: currentUser?.bio || "",
-    userType: currentUser?.userType || "individual",
-  })
+    first_name: "",
+    last_name: "",
+    email: "",
+    phone: "",
+    location: "",
+    organization: "",
+    bio: "",
+    user_type: "individual",
+  });
   const [passwordData, setPasswordData] = useState({
-    currentPassword: "",
-    newPassword: "",
-    confirmPassword: "",
-  })
+    current_password: "",
+    new_password: "",
+    confirm_password: "",
+  });
+
+  useEffect(() => {
+    const loadUserData = async () => {
+      try {
+        setLoading(true);
+
+        // Fetch data in parallel like in Dashboard
+        const [itemsRes, ordersRes, userRes] = await Promise.all([
+          itemsAPI.getMyItems(),
+          ordersAPI.getMyOrders(),
+          authAPI.getCurrentUser(),
+        ]);
+
+        // Calculate stats using the same logic as Dashboard
+        const myItems = itemsRes.data.length;
+        const activeOrders =
+          ordersRes.data.received.length + ordersRes.data.sent.length;
+        const completedDeals = ordersRes.data.completed.length;
+
+        setStats({
+          myItems,
+          activeOrders,
+          completedDeals,
+          messages: 0, // Same as Dashboard
+        });
+
+        const user = userRes.data;
+        setProfileData({
+          first_name: user.first_name || "",
+          last_name: user.last_name || "",
+          email: user.email || "",
+          phone: user.phone || "",
+          location: user.location || "",
+          organization: user.organization || "",
+          bio: user.bio || "",
+          user_type: user.user_type || "individual",
+        });
+      } catch (error) {
+        console.error("Failed to load user data:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadUserData();
+  }, []);
 
   const handleProfileChange = (e) => {
     setProfileData({
       ...profileData,
       [e.target.name]: e.target.value,
-    })
-  }
+    });
+  };
 
   const handlePasswordChange = (e) => {
     setPasswordData({
       ...passwordData,
       [e.target.name]: e.target.value,
-    })
-  }
+    });
+  };
 
   const handleProfileSubmit = async (e) => {
-    e.preventDefault()
-    setLoading(true)
+    e.preventDefault();
+    setLoading(true);
 
     try {
-      // محاكاة تحديث البيانات
-      await new Promise((resolve) => setTimeout(resolve, 1000))
+      console.log("Profile data to update:", profileData);
 
-      // تحديث بيانات المستخدم في السياق
-      const updatedUser = { ...currentUser, ...profileData }
-      login(updatedUser)
-
-      alert("تم تحديث البيانات بنجاح!")
+      const response = await authAPI.updateProfile(profileData);
+      alert("تم تحديث البيانات بنجاح!");
     } catch (error) {
-      alert("حدث خطأ أثناء تحديث البيانات")
+      console.error("Update failed:", error);
+      alert(
+        "حدث خطأ أثناء تحديث البيانات: " +
+          (error.response?.data?.message || error.message)
+      );
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
   const handlePasswordSubmit = async (e) => {
-    e.preventDefault()
+    e.preventDefault();
 
-    if (passwordData.newPassword !== passwordData.confirmPassword) {
-      alert("كلمات المرور الجديدة غير متطابقة")
-      return
+    if (passwordData.new_password !== passwordData.confirm_password) {
+      alert("كلمات المرور الجديدة غير متطابقة");
+      return;
     }
 
-    setLoading(true)
+    setLoading(true);
 
     try {
-      // محاكاة تغيير كلمة المرور
-      await new Promise((resolve) => setTimeout(resolve, 1000))
+      await authAPI.updateProfile({
+        current_password: passwordData.current_password,
+        new_password: passwordData.new_password,
+      });
 
-      alert("تم تغيير كلمة المرور بنجاح!")
+      alert("تم تغيير كلمة المرور بنجاح!");
       setPasswordData({
-        currentPassword: "",
-        newPassword: "",
-        confirmPassword: "",
-      })
+        current_password: "",
+        new_password: "",
+        confirm_password: "",
+      });
     } catch (error) {
-      alert("حدث خطأ أثناء تغيير كلمة المرور")
+      console.error("Password change failed:", error);
+      alert(
+        "حدث خطأ أثناء تغيير كلمة المرور: " +
+          (error.response?.data?.message || error.message)
+      );
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
   const getUserTypeLabel = (type) => {
     const types = {
@@ -91,17 +150,18 @@ const ProfilePage = () => {
       collector: "جامع خردة",
       organization: "جمعية بيئية",
       company: "شركة",
-    }
-    return types[type] || "غير محدد"
-  }
+    };
+    return types[type] || "غير محدد";
+  };
 
-  const stats = {
-    totalItems: 12,
-    activeItems: 8,
-    completedDeals: 15,
-    rating: 4.6,
-    reviewsCount: 23,
-  }
+  const getJoinDate = () => {
+    if (!currentUser?.created_at) return "تاريخ غير معروف";
+    const date = new Date(currentUser.created_at);
+    return `عضو منذ ${date.toLocaleDateString("ar-EG", {
+      month: "long",
+      year: "numeric",
+    })}`;
+  };
 
   return (
     <div className="container py-4">
@@ -113,43 +173,45 @@ const ProfilePage = () => {
               <div className="row align-items-center">
                 <div className="col-md-2 text-center">
                   <img
-                    src={currentUser?.avatar || "/placeholder.svg"}
+                    src={
+                      currentUser?.avatar ||
+                      "https://upload.wikimedia.org/wikipedia/commons/thumb/b/b5/Windows_10_Default_Profile_Picture.svg/768px-Windows_10_Default_Profile_Picture.svg.png?20221210150350"
+                    }
                     alt="الصورة الشخصية"
                     className="rounded-circle border border-white border-3"
-                    style={{ width: "100px", height: "100px", objectFit: "cover" }}
+                    style={{
+                      width: "100px",
+                      height: "100px",
+                      objectFit: "cover",
+                    }}
                   />
                 </div>
                 <div className="col-md-6">
-                  <h2 className="mb-2">{currentUser?.name}</h2>
+                  <h2 className="mb-2">
+                    {currentUser?.name || currentUser?.username}
+                  </h2>
                   <p className="mb-1">
                     <i className="fas fa-user-tag me-2"></i>
-                    {getUserTypeLabel(currentUser?.userType)}
+                    {getUserTypeLabel(currentUser?.user_type)}
                   </p>
                   <p className="mb-1">
                     <i className="fas fa-map-marker-alt me-2"></i>
-                    {currentUser?.location}
+                    {currentUser?.location || "غير محدد"}
                   </p>
                   <p className="mb-0">
                     <i className="fas fa-calendar me-2"></i>
-                    عضو منذ يناير 2024
+                    {getJoinDate()}
                   </p>
                 </div>
                 <div className="col-md-4">
                   <div className="row text-center">
                     <div className="col-6">
-                      <h4 className="mb-0">{stats.rating}</h4>
-                      <small>التقييم</small>
-                      <div>
-                        <i className="fas fa-star"></i>
-                        <i className="fas fa-star"></i>
-                        <i className="fas fa-star"></i>
-                        <i className="fas fa-star"></i>
-                        <i className="fas fa-star-half-alt"></i>
-                      </div>
+                      <h4 className="mb-0">{stats.completedDeals}</h4>
+                      <small>صفقات مكتملة</small>
                     </div>
                     <div className="col-6">
-                      <h4 className="mb-0">{stats.completedDeals}</h4>
-                      <small>صفقة مكتملة</small>
+                      <h4 className="mb-0">{stats.myItems}</h4>
+                      <small>إعلاناتي</small>
                     </div>
                   </div>
                 </div>
@@ -159,41 +221,41 @@ const ProfilePage = () => {
         </div>
       </div>
 
-      {/* Stats Cards */}
+      {/* Stats Cards - Updated to match Dashboard */}
       <div className="row mb-4">
-        <div className="col-md-3 mb-3">
-          <div className="card text-center border-0 shadow-sm">
-            <div className="card-body">
-              <i className="fas fa-box text-success fs-2 mb-2"></i>
-              <h4 className="text-success">{stats.totalItems}</h4>
-              <p className="text-muted mb-0">إجمالي الإعلانات</p>
+        <div className="col-lg-3 col-md-6 mb-3">
+          <div className="card border-0 shadow-sm">
+            <div className="card-body text-center">
+              <i className="fas fa-box text-success fs-1 mb-3"></i>
+              <h3 className="text-success">{stats.myItems}</h3>
+              <p className="text-muted mb-0">إعلاناتي</p>
             </div>
           </div>
         </div>
-        <div className="col-md-3 mb-3">
-          <div className="card text-center border-0 shadow-sm">
-            <div className="card-body">
-              <i className="fas fa-eye text-info fs-2 mb-2"></i>
-              <h4 className="text-info">{stats.activeItems}</h4>
-              <p className="text-muted mb-0">إعلانات نشطة</p>
+        <div className="col-lg-3 col-md-6 mb-3">
+          <div className="card border-0 shadow-sm">
+            <div className="card-body text-center">
+              <i className="fas fa-shopping-cart text-warning fs-1 mb-3"></i>
+              <h3 className="text-warning">{stats.activeOrders}</h3>
+              <p className="text-muted mb-0">طلبات نشطة</p>
             </div>
           </div>
         </div>
-        <div className="col-md-3 mb-3">
-          <div className="card text-center border-0 shadow-sm">
-            <div className="card-body">
-              <i className="fas fa-handshake text-warning fs-2 mb-2"></i>
-              <h4 className="text-warning">{stats.completedDeals}</h4>
+        <div className="col-lg-3 col-md-6 mb-3">
+          <div className="card border-0 shadow-sm">
+            <div className="card-body text-center">
+              <i className="fas fa-handshake text-info fs-1 mb-3"></i>
+              <h3 className="text-info">{stats.completedDeals}</h3>
               <p className="text-muted mb-0">صفقات مكتملة</p>
             </div>
           </div>
         </div>
-        <div className="col-md-3 mb-3">
-          <div className="card text-center border-0 shadow-sm">
-            <div className="card-body">
-              <i className="fas fa-star text-warning fs-2 mb-2"></i>
-              <h4 className="text-warning">{stats.reviewsCount}</h4>
-              <p className="text-muted mb-0">تقييم</p>
+        <div className="col-lg-3 col-md-6 mb-3">
+          <div className="card border-0 shadow-sm">
+            <div className="card-body text-center">
+              <i className="fas fa-envelope text-primary fs-1 mb-3"></i>
+              <h3 className="text-primary">{stats.messages}</h3>
+              <p className="text-muted mb-0">رسائل جديدة</p>
             </div>
           </div>
         </div>
@@ -205,7 +267,9 @@ const ProfilePage = () => {
           <ul className="nav nav-tabs mb-4">
             <li className="nav-item">
               <button
-                className={`nav-link ${activeTab === "profile" ? "active" : ""}`}
+                className={`nav-link ${
+                  activeTab === "profile" ? "active" : ""
+                }`}
                 onClick={() => setActiveTab("profile")}
               >
                 <i className="fas fa-user me-2"></i>
@@ -214,29 +278,13 @@ const ProfilePage = () => {
             </li>
             <li className="nav-item">
               <button
-                className={`nav-link ${activeTab === "security" ? "active" : ""}`}
+                className={`nav-link ${
+                  activeTab === "security" ? "active" : ""
+                }`}
                 onClick={() => setActiveTab("security")}
               >
                 <i className="fas fa-lock me-2"></i>
                 الأمان
-              </button>
-            </li>
-            <li className="nav-item">
-              <button
-                className={`nav-link ${activeTab === "notifications" ? "active" : ""}`}
-                onClick={() => setActiveTab("notifications")}
-              >
-                <i className="fas fa-bell me-2"></i>
-                الإشعارات
-              </button>
-            </li>
-            <li className="nav-item">
-              <button
-                className={`nav-link ${activeTab === "privacy" ? "active" : ""}`}
-                onClick={() => setActiveTab("privacy")}
-              >
-                <i className="fas fa-shield-alt me-2"></i>
-                الخصوصية
               </button>
             </li>
           </ul>
@@ -252,18 +300,35 @@ const ProfilePage = () => {
                   <div className="row">
                     <div className="col-md-6 mb-3">
                       <label htmlFor="name" className="form-label">
-                        الاسم الكامل
+                        الاسم الاول
                       </label>
                       <input
                         type="text"
                         className="form-control"
                         id="name"
-                        name="name"
-                        value={profileData.name}
+                        name="first_name"
+                        value={profileData.first_name}
                         onChange={handleProfileChange}
                         required
                       />
                     </div>
+                    <div className="col-md-6 mb-3">
+                      <label htmlFor="name" className="form-label">
+                        الاسم الاخير
+                      </label>
+                      <input
+                        type="text"
+                        className="form-control"
+                        id="name"
+                        name="last_name"
+                        value={profileData.last_name}
+                        onChange={handleProfileChange}
+                        required
+                      />
+                    </div>
+                  </div>
+
+                  <div className="row">
                     <div className="col-md-6 mb-3">
                       <label htmlFor="email" className="form-label">
                         البريد الإلكتروني
@@ -278,9 +343,6 @@ const ProfilePage = () => {
                         required
                       />
                     </div>
-                  </div>
-
-                  <div className="row">
                     <div className="col-md-6 mb-3">
                       <label htmlFor="phone" className="form-label">
                         رقم الهاتف
@@ -320,18 +382,15 @@ const ProfilePage = () => {
                         <option value="البحيرة">البحيرة</option>
                       </select>
                     </div>
-                  </div>
-
-                  <div className="row">
                     <div className="col-md-6 mb-3">
-                      <label htmlFor="userType" className="form-label">
+                      <label htmlFor="user_type" className="form-label">
                         نوع المستخدم
                       </label>
                       <select
                         className="form-select"
-                        id="userType"
-                        name="userType"
-                        value={profileData.userType}
+                        id="user_type"
+                        name="user_type"
+                        value={profileData.user_type}
                         onChange={handleProfileChange}
                         required
                       >
@@ -342,7 +401,7 @@ const ProfilePage = () => {
                         <option value="company">شركة</option>
                       </select>
                     </div>
-                    {profileData.userType !== "individual" && (
+                    {profileData.user_type !== "individual" && (
                       <div className="col-md-6 mb-3">
                         <label htmlFor="organization" className="form-label">
                           اسم المؤسسة
@@ -374,10 +433,17 @@ const ProfilePage = () => {
                     ></textarea>
                   </div>
 
-                  <button type="submit" className="btn btn-success" disabled={loading}>
+                  <button
+                    type="submit"
+                    className="btn btn-success"
+                    disabled={loading}
+                  >
                     {loading ? (
                       <>
-                        <span className="spinner-border spinner-border-sm me-2" role="status"></span>
+                        <span
+                          className="spinner-border spinner-border-sm me-2"
+                          role="status"
+                        ></span>
                         جاري الحفظ...
                       </>
                     ) : (
@@ -401,54 +467,61 @@ const ProfilePage = () => {
               <div className="card-body">
                 <form onSubmit={handlePasswordSubmit}>
                   <div className="mb-3">
-                    <label htmlFor="currentPassword" className="form-label">
+                    <label htmlFor="current_password" className="form-label">
                       كلمة المرور الحالية
                     </label>
                     <input
                       type="password"
                       className="form-control"
-                      id="currentPassword"
-                      name="currentPassword"
-                      value={passwordData.currentPassword}
+                      id="current_password"
+                      name="current_password"
+                      value={passwordData.current_password}
                       onChange={handlePasswordChange}
                       required
                     />
                   </div>
 
                   <div className="mb-3">
-                    <label htmlFor="newPassword" className="form-label">
+                    <label htmlFor="new_password" className="form-label">
                       كلمة المرور الجديدة
                     </label>
                     <input
                       type="password"
                       className="form-control"
-                      id="newPassword"
-                      name="newPassword"
-                      value={passwordData.newPassword}
+                      id="new_password"
+                      name="new_password"
+                      value={passwordData.new_password}
                       onChange={handlePasswordChange}
                       required
                     />
                   </div>
 
                   <div className="mb-3">
-                    <label htmlFor="confirmPassword" className="form-label">
+                    <label htmlFor="confirm_password" className="form-label">
                       تأكيد كلمة المرور الجديدة
                     </label>
                     <input
                       type="password"
                       className="form-control"
-                      id="confirmPassword"
-                      name="confirmPassword"
-                      value={passwordData.confirmPassword}
+                      id="confirm_password"
+                      name="confirm_password"
+                      value={passwordData.confirm_password}
                       onChange={handlePasswordChange}
                       required
                     />
                   </div>
 
-                  <button type="submit" className="btn btn-warning" disabled={loading}>
+                  <button
+                    type="submit"
+                    className="btn btn-warning"
+                    disabled={loading}
+                  >
                     {loading ? (
                       <>
-                        <span className="spinner-border spinner-border-sm me-2" role="status"></span>
+                        <span
+                          className="spinner-border spinner-border-sm me-2"
+                          role="status"
+                        ></span>
                         جاري التحديث...
                       </>
                     ) : (
@@ -462,112 +535,10 @@ const ProfilePage = () => {
               </div>
             </div>
           )}
-
-          {/* Notifications Tab */}
-          {activeTab === "notifications" && (
-            <div className="card border-0 shadow-sm">
-              <div className="card-header">
-                <h5 className="mb-0">إعدادات الإشعارات</h5>
-              </div>
-              <div className="card-body">
-                <div className="mb-3">
-                  <div className="form-check form-switch">
-                    <input className="form-check-input" type="checkbox" id="emailNotifications" defaultChecked />
-                    <label className="form-check-label" htmlFor="emailNotifications">
-                      إشعارات البريد الإلكتروني
-                    </label>
-                  </div>
-                </div>
-
-                <div className="mb-3">
-                  <div className="form-check form-switch">
-                    <input className="form-check-input" type="checkbox" id="smsNotifications" />
-                    <label className="form-check-label" htmlFor="smsNotifications">
-                      إشعارات الرسائل النصية
-                    </label>
-                  </div>
-                </div>
-
-                <div className="mb-3">
-                  <div className="form-check form-switch">
-                    <input className="form-check-input" type="checkbox" id="orderNotifications" defaultChecked />
-                    <label className="form-check-label" htmlFor="orderNotifications">
-                      إشعارات الطلبات الجديدة
-                    </label>
-                  </div>
-                </div>
-
-                <div className="mb-3">
-                  <div className="form-check form-switch">
-                    <input className="form-check-input" type="checkbox" id="messageNotifications" defaultChecked />
-                    <label className="form-check-label" htmlFor="messageNotifications">
-                      إشعارات الرسائل
-                    </label>
-                  </div>
-                </div>
-
-                <button className="btn btn-success">
-                  <i className="fas fa-save me-2"></i>
-                  حفظ الإعدادات
-                </button>
-              </div>
-            </div>
-          )}
-
-          {/* Privacy Tab */}
-          {activeTab === "privacy" && (
-            <div className="card border-0 shadow-sm">
-              <div className="card-header">
-                <h5 className="mb-0">إعدادات الخصوصية</h5>
-              </div>
-              <div className="card-body">
-                <div className="mb-3">
-                  <div className="form-check form-switch">
-                    <input className="form-check-input" type="checkbox" id="showPhone" defaultChecked />
-                    <label className="form-check-label" htmlFor="showPhone">
-                      إظهار رقم الهاتف للمستخدمين
-                    </label>
-                  </div>
-                </div>
-
-                <div className="mb-3">
-                  <div className="form-check form-switch">
-                    <input className="form-check-input" type="checkbox" id="showEmail" />
-                    <label className="form-check-label" htmlFor="showEmail">
-                      إظهار البريد الإلكتروني للمستخدمين
-                    </label>
-                  </div>
-                </div>
-
-                <div className="mb-3">
-                  <div className="form-check form-switch">
-                    <input className="form-check-input" type="checkbox" id="allowMessages" defaultChecked />
-                    <label className="form-check-label" htmlFor="allowMessages">
-                      السماح بالرسائل من المستخدمين
-                    </label>
-                  </div>
-                </div>
-
-                <div className="mb-3">
-                  <div className="form-check form-switch">
-                    <input className="form-check-input" type="checkbox" id="showActivity" defaultChecked />
-                    <label className="form-check-label" htmlFor="showActivity">
-                      إظهار آخر نشاط
-                    </label>
-                  </div>
-                </div>
-
-                <button className="btn btn-success">
-                  <i className="fas fa-save me-2"></i>
-                  حفظ الإعدادات
-                </button>
-              </div>
-            </div>
-          )}
         </div>
       </div>
     </div>
-  )
-}
+  );
+};
 
-export default ProfilePage
+export default ProfilePage;

@@ -39,14 +39,13 @@ class ItemDetailView(generics.RetrieveAPIView):
         instance.views += 1
         instance.save(update_fields=['views'])
         serializer = self.get_serializer(instance)
+        print("Item details retrieved:", serializer.data)
         return Response(serializer.data)
 
 class ItemCreateView(generics.CreateAPIView):
     serializer_class = ItemCreateSerializer
     permission_classes = [permissions.IsAuthenticated]
     def create(self, request, *args, **kwargs):
-        print("Incoming request data:", request.data)
-
         serializer = self.get_serializer(data=request.data)
         if serializer.is_valid():
             self.perform_create(serializer)
@@ -57,7 +56,6 @@ class ItemCreateView(generics.CreateAPIView):
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
         
     def perform_create(self, serializer):
-        print("Creating item with data:", serializer.validated_data)
         serializer.save()
 
 class MyItemsView(generics.ListAPIView):
@@ -123,7 +121,6 @@ def search_items(request):
 @api_view(['GET'])
 @permission_classes([permissions.AllowAny])
 def featured_items(request):
-    print('entered')
     items = Item.objects.filter(status='active', is_featured=True)[:6]
     serializer = ItemListSerializer(items, many=True, context={'request': request})
     return Response(serializer.data)

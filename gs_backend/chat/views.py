@@ -24,16 +24,14 @@ class ConversationListView(generics.ListAPIView):
 
     def post(self, request, *args, **kwargs):
         # Get participant IDs and item ID from request data
+        print("Request data for creating conversation:", request.data)
         participant_ids = request.data.get('participants', [])
         item_id = request.data.get('item', None)
-        
-        # Validate required fields
         if not item_id:
             return Response(
                 {'error': 'Item ID is required'},
                 status=status.HTTP_400_BAD_REQUEST
             )
-        
         # Ensure the current user is included in participants
         if request.user.id not in participant_ids:
             participant_ids.append(request.user.id)
@@ -47,26 +45,34 @@ class ConversationListView(generics.ListAPIView):
                 {'error': 'One or more participants not found'},
                 status=status.HTTP_400_BAD_REQUEST
             )
-        
         try:
             item = Item.objects.get(id=item_id)
+            if item.user not in participants:
+                return Response(
+                    {'error': 'Item owner must be a participant',
+                     'item_owner': item.user.id},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
         except Item.DoesNotExist:
             return Response(
                 {'error': 'Item not found'},
                 status=status.HTTP_400_BAD_REQUEST
             )
-        
         # Check if a conversation with these participants and item already exists
         existing_conversation = self.get_existing_conversation(participants, item)
         if existing_conversation:
             serializer = self.get_serializer(existing_conversation)
             return Response(serializer.data, status=status.HTTP_200_OK)
-        
         # Create new conversation
-        conversation = Conversation.objects.create(item=item)
-        conversation.participants.set(participants)
-        
-        serializer = self.get_serializer(conversation)
+        try:
+            conversation = Conversation.objects.create(item=item)
+            conversation.participants.set(participants)
+            
+            serializer = self.get_serializer(conversation)
+        except Exception as e:
+            print("Error creating conversation:", e)
+
+
         return Response(serializer.data, status=status.HTTP_201_CREATED)
     
     def get_existing_conversation(self, participants, item):
