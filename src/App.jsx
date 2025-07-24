@@ -18,6 +18,7 @@ import ChatPage from "./pages/ChatPage";
 import OrdersPage from "./pages/OrdersPage";
 import ProfilePage from "./pages/ProfilePage";
 import AdminPanel from "./pages/AdminPanel";
+import CartPage from "./pages/CartPage";
 
 // Context
 import { AuthProvider } from "./context/AuthContext";
@@ -25,6 +26,7 @@ import { useEffect } from "react";
 
 import "./App.css";
 import UpdateItemPage from "./pages/UpdateItemPage";
+import PaymentPage from "./pages/PaymentPage";
 
 function App() {
   useEffect(() => {
@@ -58,6 +60,8 @@ function App() {
               <Route path="/profile" element={<ProfilePage />} />
               <Route path="/admin" element={<AdminPanel />} />
               <Route path="/home" element={<HomePage />} />
+              <Route path="/cart" element={<CartPage />} />
+              <Route path="/pay/:orderId" element={<PaymentPage />} />
               <Route path="*" element={<HomePage />} />
             </Routes>
           </main>

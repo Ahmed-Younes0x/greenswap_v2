@@ -1,15 +1,16 @@
-"use client"
-import { Link, useNavigate } from "react-router-dom"
-import { useAuth } from "../context/AuthContext"
+"use client";
+import { Link, useNavigate } from "react-router-dom";
+import { useAuth } from "../context/AuthContext";
+import { FaShoppingCart } from 'react-icons/fa';
 
 const Navbar = () => {
-  const { currentUser, logout } = useAuth()
-  const navigate = useNavigate()
+  const { currentUser, logout } = useAuth();
+  const navigate = useNavigate();
 
   const handleLogout = () => {
-    logout()
-    navigate("/")
-  }
+    logout();
+    navigate("/");
+  };
 
   return (
     <nav className="navbar navbar-expand-lg navbar-dark bg-success sticky-top">
@@ -19,7 +20,12 @@ const Navbar = () => {
           GreenSwap Egypt
         </Link>
 
-        <button className="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+        <button
+          className="navbar-toggler"
+          type="button"
+          data-bs-toggle="collapse"
+          data-bs-target="#navbarNav"
+        >
           <span className="navbar-toggler-icon"></span>
         </button>
 
@@ -57,7 +63,19 @@ const Navbar = () => {
                     المحادثات
                   </Link>
                 </li>
-                {currentUser.user_type === 'admin' && (
+                {/* <li className="nav-item">
+                  <div className="nav-link position-relative">
+                    <Link to="/cart" className="text-decoration-none text-dark">
+                      <FaShoppingCart size={20} />
+                      
+                        <span className="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">
+                          {localStorage.getItem('itemCount') || 0}
+                        </span>
+                      
+                    </Link>
+                  </div>
+                </li> */}
+                {currentUser.user_type === "admin" && (
                   <li className="nav-item">
                     <Link className="nav-link" to="/admin">
                       الإدارة
@@ -71,13 +89,17 @@ const Navbar = () => {
           <ul className="navbar-nav">
             {currentUser ? (
               <>
-                <li className="nav-item">
-                  {/* <NotificationSystem /> */}
-                </li>
+                <li className="nav-item">{/* <NotificationSystem /> */}</li>
                 <li className="nav-item dropdown">
-                  <a className="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
+                  <a
+                    className="nav-link dropdown-toggle"
+                    href="#"
+                    role="button"
+                    data-bs-toggle="dropdown"
+                  >
                     <i className="fas fa-user me-1"></i>
-                    {currentUser.username || currentUser.email} {/* Display username or email */}
+                    {currentUser.username || currentUser.email}{" "}
+                    {/* Display username or email */}
                   </a>
                   <ul className="dropdown-menu">
                     <li>
@@ -104,7 +126,10 @@ const Navbar = () => {
                   </Link>
                 </li>
                 <li className="nav-item">
-                  <Link className="nav-link btn btn-outline-light ms-2" to="/register">
+                  <Link
+                    className="nav-link btn btn-outline-light ms-2"
+                    to="/register"
+                  >
                     إنشاء حساب
                   </Link>
                 </li>
@@ -114,7 +139,7 @@ const Navbar = () => {
         </div>
       </div>
     </nav>
-  )
-}
+  );
+};
 
-export default Navbar
+export default Navbar;

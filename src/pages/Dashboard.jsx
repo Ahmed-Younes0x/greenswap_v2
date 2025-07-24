@@ -24,7 +24,7 @@ const Dashboard = () => {
         setLoading(true)
         
         // Fetch stats and recent activity in parallel
-        const [itemsRes, ordersRes,notificationsRes] = await Promise.all([
+        const [itemsRes, ordersRes] = await Promise.all([
           itemsAPI.getMyItems(),
           ordersAPI.getMyOrders(),
           // notificationsAPI.getNotifications(),

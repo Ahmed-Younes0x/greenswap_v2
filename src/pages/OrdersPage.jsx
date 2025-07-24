@@ -1,13 +1,15 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
-import { ordersAPI } from "../services/api.js";
+import { ordersAPI, paymentAPI } from "../services/api.js";
+import { FaComments } from "react-icons/fa";
 
 const OrdersPage = () => {
   const { currentUser } = useAuth();
   const [activeTab, setActiveTab] = useState("received");
+  const navigate = useNavigate();
   const [orders, setOrders] = useState({
     received: [],
     sent: [],
@@ -37,24 +39,24 @@ const OrdersPage = () => {
       fetchOrders();
     }
   }, [currentUser]);
-
-  const processOrdersData = (ordersData) => {
+const processOrdersData = (ordersData) => {
     // This function processes the raw data from backend into the format our component expects
     const processed = {
       received: [],
       sent: [],
       completed: [],
     };
-
     ordersData.forEach((order) => {
-      console.log(order.item.id,'entereds');
-      
+      console.log(order.item.id, "entereds");
+
       const formattedOrder = {
         id: order.id,
         item: {
           id: order.item.id,
           title: order.item.title,
-          image: `http://localhost:8000/api/images/item/${order.item.id}/` || "/placeholder.svg",
+          image:
+            `http://localhost:8000/api/images/item/${order.item.id}/` ||
+            "/placeholder.svg",
           category: order.item.category?.name || "غير مصنف",
         },
         message: order.message || "لا توجد رسالة",
@@ -90,9 +92,10 @@ const OrdersPage = () => {
         processed.completed.push(formattedOrder);
       }
     });
-
     return processed;
   };
+
+
 
   const getStatusLabel = (status) => {
     const statuses = {
@@ -103,10 +106,31 @@ const OrdersPage = () => {
     };
     return statuses[status] || { label: status, class: "secondary" };
   };
-
+  const handlePayment = (orderId) => {navigate(`/pay/${orderId}`);};
+  const handleCancelPayment = async (orderId) => {
+    try {
+      await paymentAPI.CancelPayment(orderId);
+      alert("تم إلغاء الدفع بنجاح");
+    } catch (err) {
+      console.error("Failed to cancel payment:", err);
+      alert("فشل إلغاء الدفع. يرجى المحاولة مرة أخرى.");
+    }
+  };
+  const handleCancelOrder = async (orderId) => {
+    if (!window.confirm("هل أنت متأكد من إلغاء هذا الطلب؟")) return;
+    try {
+      await ordersAPI.cancelOrder(orderId);
+      
+      setOrders((prev) => ({ ...prev, sent: prev.sent.filter((o) => o.id !== orderId) }));
+      alert("تم إلغاء الطلب بنجاح");
+    } catch (err) {
+      console.error("Failed to cancel order:", err);
+      alert("فشل إلغاء الطلب. يرجى المحاولة مرة أخرى.");
+    }
+  };
   const handleOrderAction = async (orderId, action) => {
     try {
-      await ordersAPI.updateOrder(orderId, { status: action });
+      await ordersAPI.updateOrderStatus(orderId, action);
 
       // Update local state to reflect the change
       setOrders((prev) => ({
@@ -135,43 +159,43 @@ const OrdersPage = () => {
     });
   };
 
-  if (!currentUser) {
-    return (
-      <div className="container py-5 text-center">
-        <p>الرجاء تسجيل الدخول لعرض الطلبات</p>
-        <Link to="/login" className="btn btn-success">
-          تسجيل الدخول
-        </Link>
-      </div>
-    );
-  }
+  // if (!currentUser) {
+  //   return (
+  //     <div className="container py-5 text-center">
+  //       <p>الرجاء تسجيل الدخول لعرض الطلبات</p>
+  //       <Link to="/login" className="btn btn-success">
+  //         تسجيل الدخول
+  //       </Link>
+  //     </div>
+  //   );
+  // }
 
-  if (loading) {
-    return (
-      <div className="container py-5">
-        <div className="text-center">
-          <div className="spinner-border text-success" role="status">
-            <span className="visually-hidden">جاري التحميل...</span>
-          </div>
-          <p className="mt-2">جاري تحميل الطلبات...</p>
-        </div>
-      </div>
-    );
-  }
+  // if (loading) {
+  //   return (
+  //     <div className="container py-5">
+  //       <div className="text-center">
+  //         <div className="spinner-border text-success" role="status">
+  //           <span className="visually-hidden">جاري التحميل...</span>
+  //         </div>
+  //         <p className="mt-2">جاري تحميل الطلبات...</p>
+  //       </div>
+  //     </div>
+  //   );
+  // }
 
-  if (error) {
-    return (
-      <div className="container py-5 text-center text-danger">
-        <p>{error}</p>
-        <button
-          className="btn btn-success"
-          onClick={() => window.location.reload()}
-        >
-          إعادة المحاولة
-        </button>
-      </div>
-    );
-  }
+  // if (error) {
+  //   return (
+  //     <div className="container py-5 text-center text-danger">
+  //       <p>{error}</p>
+  //       <button
+  //         className="btn btn-success"
+  //         onClick={() => window.location.reload()}
+  //       >
+  //         إعادة المحاولة
+  //       </button>
+  //     </div>
+  //   );
+  // }
 
   return (
     <div className="container py-4">
@@ -335,10 +359,10 @@ const OrdersPage = () => {
                                 رفض
                               </button>
                               <Link
-                                to={`/chat/${order.buyer.id}`}
+                                to={`/chat/${order.buyer.id}/item/${order.item.id}`}
                                 className="btn btn-outline-primary btn-sm"
                               >
-                                <i className="fas fa-comments"></i>
+                                <FaComments />
                               </Link>
                             </div>
                           )}
@@ -408,6 +432,11 @@ const OrdersPage = () => {
                               </span>
                               <p className="text-success fw-bold mb-0">
                                 {order.price}
+                                {order.payment_status === "paid" && (
+                                  <span className="badge bg-success ms-2">
+                                    مدفوع
+                                  </span>
+                                )}
                               </p>
                             </div>
                             <span
@@ -449,25 +478,89 @@ const OrdersPage = () => {
                           <div className="mb-3">
                             <small className="text-muted">
                               <i className="fas fa-clock me-1"></i>
-                              {formatDate(order.createdAt)}
+                              {formatDate(order.created_at)}
                             </small>
                           </div>
 
-                          <div className="d-flex gap-2">
-                            <Link
-                              to={`/item/${order.item.id}`}
-                              className="btn btn-outline-success btn-sm flex-grow-1"
-                            >
-                              <i className="fas fa-eye me-1"></i>
-                              عرض المنتج
-                            </Link>
-                            <Link
-                              to={`/chat/${order.seller.id}`}
-                              className="btn btn-primary btn-sm"
-                            >
-                              <i className="fas fa-comments"></i>
-                            </Link>
-                          </div>
+        <div className="d-flex gap-2">
+          {/* View Product Button - made smaller */}
+          <Link
+            to={`/item/${order.item.id}`}
+            className="btn btn-outline-success btn-sm"
+            style={{ width: '120px' }}  // Fixed width
+          >
+            <i className="fas fa-eye me-1"></i>
+            عرض المنتج
+          </Link>
+
+          {/* Chat Button - made larger */}
+          <Link
+            to={`/chat/${order.seller.id}/item/${order.item.id}`}
+            className="btn btn-outline-primary btn-sm"
+            style={{ width: '60px' }}  // Fixed width
+            title="الدردشة مع البائع"
+          >
+            <FaComments size={14} />
+          </Link>
+
+          {/* Conditional buttons based on status */}
+          {order.status === "pending" && (
+            <button
+              className="btn btn-warning btn-sm"
+              onClick={() => handleCancelOrder(order.id)}
+              style={{ width: '120px' }}
+            >
+              <i className="fas fa-times me-1"></i>
+              إلغاء الطلب
+            </button>
+          )}
+
+          {/* Payment Button - updated logic */}
+          {order.status === "accepted" && order.payment_status === "unpaid" && (
+            <button
+              className="btn btn-success btn-sm"
+              onClick={() => handlePayment(order.id)}
+              style={{ width: '120px' }}
+            >
+              <i className="fas fa-money-bill-wave me-1"></i>
+              ادفع الآن
+            </button>
+          )}
+
+          {order.payment_status === "verifying" && (
+            <button
+              className="btn btn-danger btn-sm"
+              onClick={() => handleCancelPayment(order.id)}
+              style={{ width: '120px' }}
+            >
+              <i className="fas fa-times me-1"></i>
+              إلغاء الدفع
+            </button>
+          )}
+
+          {order.payment_status === "paid" && (
+            <button
+              className="btn btn-success btn-sm"
+              onClick={() => handleConfirmReceipt(order.id)}
+              disabled={order.status === "completed"}
+              style={{ width: '120px' }}
+            >
+              <i className="fas fa-check-circle me-1"></i>
+              {order.status === "completed" ? "تم الاستلام" : "تأكيد الاستلام"}
+            </button>
+          )}
+        </div>
+
+                          {/* Payment details if paid */}
+                          {order.payment_status === "paid" && (
+                            <div className="mt-2 p-2 bg-light rounded">
+                              <small className="text-muted">
+                                <i className="fas fa-receipt me-1"></i>
+                                تم الدفع بتاريخ:{" "}
+                                {formatDate(order.payment_date)}
+                              </small>
+                            </div>
+                          )}
                         </div>
                       </div>
                     </div>
@@ -476,7 +569,6 @@ const OrdersPage = () => {
               )}
             </div>
           )}
-
           {/* Completed Orders */}
           {activeTab === "completed" && (
             <div>
@@ -583,6 +675,5 @@ const OrdersPage = () => {
       </div>
     </div>
   );
-};
-
+}
 export default OrdersPage;

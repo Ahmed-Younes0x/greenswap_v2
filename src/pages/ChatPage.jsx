@@ -42,7 +42,7 @@ const ChatPage = () => {
               });
               setConversations((prev) => [...prev, newConv.data]);
               setActiveConversationId(newConv.data.id);
-              navigate(`/chat/${sellerId}/${newConv.data.id}`, {
+              navigate(`/chat/${sellerId}/item/${newConv.data.id}`, {
                 replace: true,
               });
             } catch (err) {

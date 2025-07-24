@@ -62,6 +62,11 @@ api.interceptors.response.use(
     return Promise.reject(error);
   }
 );
+export const paymentAPI = {
+  createPayment: (paymentData) => api.post("/payments/create/", paymentData),
+  verifyPayment: (paymentId) => api.patch(`/payments/${paymentId}/verify/`),
+  CancelPayment: (orderId) => api.patch(`/payments/${orderId}/cancel/`),
+};
 
 // Auth API
 export const authAPI = {
@@ -71,6 +76,7 @@ export const authAPI = {
     api.post("/auth/logout/", { refresh: refreshToken }),
   getCurrentUser: () => api.get("/auth/current-user/"),
   updateProfile: (userData) => api.patch("/auth/profile/", userData),
+  getAllusers: () => api.get("/auth/users/"),
 };
 
 // Items API
@@ -109,20 +115,20 @@ export const itemsAPI = {
 export const ordersAPI = {
   // Get all orders (grouped by received, sent, completed)
   getOrders: () => api.get("/orders/"),
-  
+
   // Get specific order details
   getOrder: (orderId) => api.get(`/orders/${orderId}/`),
-  
+
   // Create a new order
   createOrder: (orderData) => api.post("/orders/create/", orderData),
-  
+
   // Update order status (seller only)
-  updateOrderStatus: (orderId, status) => 
+  updateOrderStatus: (orderId, status) =>
     api.post(`/orders/${orderId}/status/`, { status }),
-  
+
   // Cancel an order (buyer only)
   cancelOrder: (orderId) => api.delete(`/orders/${orderId}/cancel/`),
-  
+
   // Get current user's orders (grouped by received, sent, completed)
   getMyOrders: () => api.get("/orders/"),
 };
@@ -142,6 +148,13 @@ export const notificationsAPI = {
   getNotifications: () => api.get("/notifications/"),
   markAsRead: (id) => api.patch(`/notifications/${id}/`, { is_read: true }),
   markAllAsRead: () => api.post("/notifications/mark-all-read/"),
+};
+
+export const CartAPI = {
+  getCart: () => api.get("/cart/"),
+  removeItem: () => api.delete(`/cart/items/${itemId}/`),
+  clearCart: () => api.delete("/cart/clear/"),
+  updateQuantity: () => api.patch(`/cart/items/${itemId}/`, { quantity }),
 };
 
 // Reviews API

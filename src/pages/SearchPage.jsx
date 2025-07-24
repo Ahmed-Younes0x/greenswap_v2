@@ -287,7 +287,7 @@ const SearchPage = () => {
 
                       <div className="d-flex justify-content-between align-items-center mb-2">
                         <span className="fw-bold text-success">
-                          {item.price_type === "free" ? "مجاني" : `${item.price} جنيه`}
+                          {!item.price ? "مجاني" : `${item.price} جنيه`}
                         </span>
                         <small className="text-muted">
                           <i className="fas fa-eye me-1"></i>
