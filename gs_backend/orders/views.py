@@ -16,12 +16,17 @@ def list_orders(request):
     sent = Order.objects.filter(buyer=user).order_by('-created_at')
     completed = Order.objects.filter(status='completed', buyer=user) | Order.objects.filter(status='completed', seller=user)
     print(f"Received orders: {received.count()}, Sent orders: {sent.count()}, Completed orders: {completed.count()}")
-    data = {
+    try:
+        data = {
         'received': OrderSerializer(received, many=True).data,
         'sent': OrderSerializer(sent, many=True).data,
         'completed': OrderSerializer(completed.distinct(), many=True).data
-    }
-    return Response(data)
+        }
+        return Response(data)
+    except Exception as e:
+         print(f"Error serializing orders: {str(e)}")
+         return Response({'error': 'Failed to retrieve orders'}, status=status.HTTP_409_CONFLICT)
+
 
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
@@ -73,7 +78,7 @@ def update_order_status(request, order_id):
     # Only seller can update order status
     if order.seller != request.user:
         return Response({'error': 'Permission denied'}, status=status.HTTP_403_FORBIDDEN)
-
+    print(f"request data: {request.data}")
     status_value = request.data.get('status')
     if status_value not in ['accepted', 'rejected', 'completed']:
         return Response({'error': 'Invalid status'}, status=status.HTTP_400_BAD_REQUEST)
@@ -82,6 +87,9 @@ def update_order_status(request, order_id):
     if status_value == 'completed':
         order.completed_at = now()
     order.save()
+    if status_value == 'rejected':
+        order.delete()
+        return Response({'message': 'Order rejected and deleted successfully'}, status=status.HTTP_200_OK)
     
     return Response(OrderSerializer(order).data)
 

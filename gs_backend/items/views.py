@@ -27,6 +27,7 @@ class ItemListView(generics.ListAPIView):
     search_fields = ['title', 'description']
     ordering_fields = ['created_at', 'views', 'price']
     ordering = ['-created_at']
+    
 
 class ItemDetailView(generics.RetrieveAPIView):
     queryset = Item.objects.filter(status='active')

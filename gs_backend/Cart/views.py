@@ -25,6 +25,7 @@ class CartViewSet(mixins.RetrieveModelMixin,
     def retrieve(self, request, *args, **kwargs):
         instance = self.get_object()
         serializer = self.get_serializer(instance)
+        print(serializer.data)
         return Response(serializer.data)
 
     @action(detail=False, methods=['delete'])

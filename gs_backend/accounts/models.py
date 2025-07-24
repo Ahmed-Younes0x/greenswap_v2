@@ -22,6 +22,9 @@ class User(AbstractUser):
     total_deals = models.PositiveIntegerField(default=0)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
-
+    email_verification_code = models.CharField(max_length=20, blank=True, null=True)
+    phone_verification_code = models.CharField(max_length=20, blank=True, null=True)
+    bussiness_License = models.CharField(max_length=100, blank=True, null=True)
+    address= models.CharField(max_length=255, blank=True, null=True)
     def __str__(self):
         return f"{self.username} - "

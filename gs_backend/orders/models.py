@@ -16,6 +16,8 @@ class Order(models.Model):
     message = models.TextField()
     price = models.CharField(max_length=50)
     status = models.CharField(max_length=10, choices=STATUS_CHOICES, default='pending')
+    payment_status = models.CharField(max_length=20, default='unpaid')  # e.g., 'paid', 'unpaid'
+    payment_date = models.DateTimeField(blank=True, null=True)  # When the payment was made
     created_at = models.DateTimeField(auto_now_add=True)
     completed_at = models.DateTimeField(blank=True, null=True)
 
